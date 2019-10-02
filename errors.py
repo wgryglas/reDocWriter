@@ -1,23 +1,24 @@
 class ErrorViewInterface:
     def show_error(self, text):
-        raise NotImplementedError()
+        pass
 
     def show_block(self, text):
         """
         :param text: info
         :return: None
         """
-        raise NotImplementedError()
+        pass
 
     def ask_yes_no(self, text):
         """
         :param text: question
         :return: Boolean answer to yes, no
         """
-        raise NotImplementedError()
+        pass
 
     def show_and_exit(self, text):
-        raise NotImplementedError()
+        pass
+
 
 class DialogErrorView(ErrorViewInterface):
 
@@ -53,6 +54,7 @@ class DialogErrorView(ErrorViewInterface):
         self.qsn.setText(text if text.endswith('?') else "{}?".format(text))
         return self.qsn.exec_() == QMessageBox.Yes
 
+
 class ConsoleLogger:
     def error(self, text):
         print text
@@ -63,8 +65,9 @@ class ConsoleLogger:
     def exiting(self):
         print "Critical error, application exiting"
 
+
 class ErrorHandler:
-    def __init__(self, view, logger=ConsoleLogger()):
+    def __init__(self, view=ErrorViewInterface(), logger=ConsoleLogger()):
         self._view_ = view
         self._logger_ = logger
 

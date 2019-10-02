@@ -16,6 +16,9 @@ def main():
     sys.exit(app.exec_())
 
 
+from core import Session
+
+
 class MainWindow(QWidget):
 
     def __init__(self, app, *args):
@@ -29,11 +32,10 @@ class MainWindow(QWidget):
 
         self.project_tree = QTreeView()
 
-        self.editor = RstCodeEdit(color_scheme='qt')#api.CodeEdit()
+        self.editor = RstCodeEdit(color_scheme='qt')  # api.CodeEdit()
         # self.codeinput.setFontPointSize(12)
 
         self.webview = QWebView()
-        self.webview.load(QUrl("https://sim-flow.com/"))
 
         # self.webview = HtmlPreviewWidget()
         # self.webview.set_editor(self.editor)
@@ -44,10 +46,24 @@ class MainWindow(QWidget):
 
         self.configure_editor()
 
+        self.session = Session('/home/wgryglas/python/pelicanDoc', self.errors)
+
+        from uimodels import create_directory_tree_model
+        self.project_tree.setModel(create_directory_tree_model(self.session.get_sources_structure()))
+
+        # address = self.session.start_local_server()
+        # fileaddress = '{}my-super-post.html'.format(address)
+        # print "serving", fileaddress
+        # self.webview.load(QUrl(fileaddress))
+        # self.webview.load(QUrl.fromLocalFile('/home/wgryglas/python/pelicanDoc/output/index.html'))
+        # self.webview.load( QUrl.fromLocalFile('/home/wgryglas/python/pelicanDoc/output/index.html') )
+        self.display_local_html_file(self.session.get_file_output('test.rst'))
+
+
     def configure_editor(self):
         pass
         # joining editor with webview
-        #self.webview.set_editor(self.editor)
+        # self.webview.set_editor(self.editor)
 
         # self.editor.modes.get()
 
@@ -60,6 +76,20 @@ class MainWindow(QWidget):
         # self.editor.panels.append(panels.SearchAndReplacePanel(), api.Panel.Position.BOTTOM)
 
         # self.editor.modes.get(PygmentsSyntaxHighlighter).pygments_style = 'monokai'
+
+    def display_local_html_file(self, file_path_string):
+        import os
+        if not file_path_string:
+            self.errors.show("Can't show Null html file")
+            return
+
+        if not os.path.exists(file_path_string):
+            self.errors.show('Could not load html file {} because it does not exist'.format(file_path_string))
+        else:
+            self.webview.load(QUrl.fromLocalFile(file_path_string))
+
+    def display_url(self, url_string):
+        self.webview.load(QUrl(url_string))
 
     def layout_toolbar(self):
         save = QPushButton("Save")
@@ -78,7 +108,6 @@ class MainWindow(QWidget):
 
         update = QPushButton("Update")
         update.clicked.connect(lambda: self.errors.ask_yes_no("Do you?"))
-
 
         commit = QPushButton("Commit")
 
@@ -119,7 +148,6 @@ class MainWindow(QWidget):
         layout.addWidget(container)
 
         self.setLayout(layout)
-
 
 
 ####################################################################

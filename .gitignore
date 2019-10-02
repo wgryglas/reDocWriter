@@ -154,3 +154,4 @@ fabric.properties
 # Output directory for pelican docs:
 /output/
 
+test.py
