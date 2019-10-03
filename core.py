@@ -2,6 +2,9 @@ from git import Repo
 import os, subprocess
 from errors import ErrorHandler
 from files import *
+from async import start_process
+
+from pyqode.qt.QtCore import Signal, QObject
 
 class EventSource:
     def __init__(self, *args):
@@ -9,9 +12,10 @@ class EventSource:
         self._listeners_ = []
 
     def __call__(self, *args, **kwargs):
-        if not all(map(lambda a: type(a) in self.arg_types, args)):
-            raise ValueError("You are trying to fire event with arguments, event source has predefined argument types")
-
+        # provided_types = map(lambda a: type(a) in self.arg_types, args)
+        # if not all(provided_types):
+        #     error_text = "You are trying to fire event with wrong arguments, expected {} found {}".format(",".join(self.arg_types), ",".join(provided_types))
+        #     raise ValueError(error_text)
         for l in self._listeners_:
             l.__call__(*args, **kwargs)
 
@@ -39,12 +43,16 @@ class BaseWebsiteBuildEnvironment:
             self.server_process.kill()
         self.server_process = subprocess.Popen(['invoke', 'serve'], cwd=self.repository_path)
 
-    def build_website(self):
+    def build_website(self, onSuccess, onError):
         """
-        :return: process object that might be handled externally
+        Renders html from current sources
+        :param onSuccess:
+        :param onError:
+        :return:
         """
-        return subprocess.Popen(['invoke', 'build'], cwd=self.repository_path, stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT)
+        # return subprocess.Popen(['invoke', 'build'], cwd=self.repository_path, stdout=subprocess.PIPE,
+        #                         stderr=subprocess.STDOUT)
+        start_process(onSuccess, onError, self.repository_path, ['invoke', 'build'])
 
     def rebuild_file(self, relative_file_path):
         """
@@ -106,8 +114,13 @@ class GitRepository:
         pass
 
 
-class Session:
+class Session(QObject):
+    html_output_changed = Signal()
+    content_changed = Signal(str)
+
     def __init__(self, project_root, errors=ErrorHandler(), **kwargs):
+        QObject.__init__(self)
+
         self._root_ = project_root
 
         self._env_ = BaseWebsiteBuildEnvironment(project_root) if 'config' not in kwargs else kwargs['config']
@@ -121,14 +134,17 @@ class Session:
 
         self._active_file_ = ""
         self._content_ = ""
-        self._file_is_up_to_date_ = True
 
-        self.content_changed = EventSource(str)
         self.active_file_changed = EventSource(str, str, str)
+
 
     @property
     def _active_full_path_(self):
         return self._env_.source_full_path(self._active_file_)
+
+    @property
+    def is_file_set(self):
+        return len(self._active_file_) > 0
 
     def start_local_server(self):
         """
@@ -151,7 +167,8 @@ class Session:
         :param source_file_location:
         :return:
         """
-        self.save_active_file()
+        if self.is_file_set:
+            self.save_active_file()
         self._active_file_ = source_file_location
         self._load_active_file_content_()
 
@@ -159,8 +176,12 @@ class Session:
         return self._content_
 
     def set_active_file_content(self, content):
+        if not self.is_file_set:
+            return
         self._content_ = content
-        self._file_is_up_to_date_ = False
+        self.save_active_file()
+        self._env_.build_website(lambda output: self.html_output_changed.emit(),
+                                 lambda error: self._errors_.show("Couldn't render html\n"+error))
 
     def render_active_file(self):
         """
@@ -184,20 +205,20 @@ class Session:
 
         return None
 
+    @property
+    def active_file_output(self):
+        return self.get_file_output(self._active_file_)
+
     def update_website(self):
         out, err = self._env_.build_website().communicate()
         print(out)
 
     def save_active_file(self):
-        if self._file_is_up_to_date_:
-            return
-
         with open(self._active_full_path_, 'w') as f:
             f.write(self._content_)
-            self._file_is_up_to_date_ = True
 
     def _load_active_file_content_(self):
         with open(self._active_full_path_, 'r') as f:
-            self._content_ = f.readlines()
+            self._content_ = ''.join(f.readlines())
             self._file_is_up_to_date_ = True
-            self.content_changed(self._content_)
+            self.content_changed.emit(self._content_)

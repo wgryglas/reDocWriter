@@ -63,6 +63,9 @@ class DirNode(FileNode):
                 folders.extend(folder.folders)
                 yield (folder, folder.files, folder.folders)
 
+    # def query(self, row, col):
+
+
     def __str__(self):
         strings = ''
         for parent, files, folders in self.walk():
