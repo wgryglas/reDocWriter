@@ -10,7 +10,7 @@ from pyqode.qt.QtWidgets import *
 from pyqode.qt.QtWebWidgets import *
 # use custom RstCodeEdit because could not install custom roles to work with linter
 from code_edit import RstCodeEdit
-
+from images_panel import ImagesPanel
 
 class ColorScheme(Enum):
     defualt = 1
@@ -23,8 +23,13 @@ def main():
     w.show()
     sys.exit(app.exec_())
 
-
 from core import Session
+
+
+class Settings:
+    def __init__(self):
+        self.sort_images = 'date' #name
+        self.relative_paths = False
 
 
 class MainWindow(QWidget):
@@ -33,6 +38,9 @@ class MainWindow(QWidget):
         QWidget.__init__(self, *args)
 
         from errors import ErrorHandler, DialogErrorView
+
+        self.settings = Settings()
+
         self.errors = ErrorHandler(DialogErrorView(self, app))
 
         # self.session = Session('/home/wgryglas/python/pelicanDoc', self.errors)
@@ -47,7 +55,7 @@ class MainWindow(QWidget):
 
         self.webview = QWebView()
 
-        self.render_timer = None
+        self.images_gallery = ImagesPanel(self.session, self.settings)
 
         # self.webview = HtmlPreviewWidget()
         # self.webview.set_editor(self.editor)
@@ -60,9 +68,10 @@ class MainWindow(QWidget):
 
         self.configure_editor()
 
-        self.render_started = False
         self.render_timer = QTimer()
         self.render_timer.timeout.connect(self.save_text)
+
+        self.text_saved = True
 
         # address = self.session.start_local_server()
         # fileaddress = '{}my-super-post.html'.format(address)
@@ -72,9 +81,11 @@ class MainWindow(QWidget):
         # self.webview.load( QUrl.fromLocalFile('/home/wgryglas/python/pelicanDoc/output/index.html') )
         self.display_local_html_file(self.session.get_file_output('test.rst'))
 
-        self.text_saved = True
-
         self.session.html_output_changed.connect(lambda: self.display_local_html_file(self.session.active_file_output))
+
+        self.session.html_content_changed.connect(lambda: self.webview.reload())
+
+        self.images_gallery.on_insert_image.connect(self.insert_image_in_current_position)
 
 
     def configure_editor(self):
@@ -97,21 +108,31 @@ class MainWindow(QWidget):
 
         # self.editor.modes.get(PygmentsSyntaxHighlighter).pygments_style = 'monokai'
 
+    def insert_directive_in_current_position(self, text):
+        # assert dictionary is placed in new line
+        if self.editor.textCursor().columnNumber() > 0:
+            text = '\n'+text
+        self.editor.insertPlainText(text)
+
+    def insert_image_in_current_position(self, path):
+        from editr_actions import format_image
+        self.insert_directive_in_current_position(format_image(path, scale='50 %'))
+
     def mark_unsaved(self):
         self.text_saved = False
-        if not self.render_started:
+        if not self.render_timer.isActive():
             self.render_timer.start(1000)
-            self.render_started = True
 
     def save_text(self):
         if not self.text_saved:
             self.text_saved = True
             self.session.set_active_file_content(self.editor.toPlainText())
 
-
     def configure_tree(self):
         from uimodels import create_directory_tree_model
-        model = create_directory_tree_model(self.session.get_sources_structure())
+        model = create_directory_tree_model(self.session.get_sources_structure(),
+                                            file_filter=lambda f: f.name.endswith('.rst'),
+                                            folder_filter=lambda d: d.name != 'figures')
         self.project_tree.setModel(model)
 
         selection_model = QItemSelectionModel(model)
@@ -127,6 +148,7 @@ class MainWindow(QWidget):
 
         if not node.is_dir:
             self.session.set_active_file(node.local_path)
+            self.images_gallery.show_source_images(node.local_path)
 
     def display_new_editor_content(self, content):
         self.editor.clear()
@@ -196,7 +218,17 @@ class MainWindow(QWidget):
         self.project_tree.setMaximumWidth(300)
         container.addWidget(self.editor)
 
+        central_widget = QSplitter()
+        central_widget.setOrientation(Qt.Vertical)
+        # central_layout = QVBoxLayout(central_widget)
+        # central_layout.addWidget(self.editor)
+        # central_layout.addWidget(self.images_gallery)
+        central_widget.addWidget(self.editor)
+        central_widget.addWidget(self.images_gallery)
+        # self.images_gallery.setMaximumHeight(100)
         self.editor.setMinimumWidth(500)
+
+        container.addWidget(central_widget)
         container.addWidget(self.webview)
 
         layout = QVBoxLayout()

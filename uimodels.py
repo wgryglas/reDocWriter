@@ -1,25 +1,34 @@
 from pyqode.qt.QtGui import QStandardItemModel, QStandardItem
 
 
-def create_directory_tree_model(root_tree):
-    node_mapping = dict()
+def alwaysTrue(*args):
+    return True
+
+
+def create_directory_tree_model(root_tree, file_filter=alwaysTrue, folder_filter=alwaysTrue):
+
     model = QStandardItemModel()
     model.setHorizontalHeaderLabels([root_tree.name])
 
-    root_item = model
-    node_mapping[root_tree] = root_item
+    mapping = {root_tree: model}
 
     for parent, files, dirs in root_tree.walk():
-        parent_item = node_mapping[parent]
-        for f in files:
+        if parent not in mapping:
+            continue
+
+        parent_item = mapping[parent]
+        for f in filter(file_filter, files):
             fitem = QStandardItem(f.name)
             fitem.setData(f)
             parent_item.appendRow(fitem)
 
-        for d in dirs:
+        for d in filter(folder_filter, dirs):
             ditem = QStandardItem(d.name)
             ditem.setData(d)
-            node_mapping[d] = ditem
+            mapping[d] = ditem
             parent_item.appendRow(ditem)
 
     return model
+
+
+

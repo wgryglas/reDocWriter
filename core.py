@@ -6,22 +6,6 @@ from async import start_process
 
 from pyqode.qt.QtCore import Signal, QObject
 
-class EventSource:
-    def __init__(self, *args):
-        self.arg_types = args
-        self._listeners_ = []
-
-    def __call__(self, *args, **kwargs):
-        # provided_types = map(lambda a: type(a) in self.arg_types, args)
-        # if not all(provided_types):
-        #     error_text = "You are trying to fire event with wrong arguments, expected {} found {}".format(",".join(self.arg_types), ",".join(provided_types))
-        #     raise ValueError(error_text)
-        for l in self._listeners_:
-            l.__call__(*args, **kwargs)
-
-    def connect(self, fun_obj):
-        self._listeners_.append(fun_obj)
-
 
 class BaseWebsiteBuildEnvironment:
     rst_location = "content"
@@ -116,7 +100,11 @@ class GitRepository:
 
 class Session(QObject):
     html_output_changed = Signal()
+    html_content_changed = Signal()
     content_changed = Signal(str)
+    error_raised = Signal(str)
+
+    # active_file_changed = Signal()
 
     def __init__(self, project_root, errors=ErrorHandler(), **kwargs):
         QObject.__init__(self)
@@ -135,7 +123,7 @@ class Session(QObject):
         self._active_file_ = ""
         self._content_ = ""
 
-        self.active_file_changed = EventSource(str, str, str)
+        self.error_raised.connect(errors.show)
 
 
     @property
@@ -161,6 +149,42 @@ class Session(QObject):
         """
         return create_file_tree(self._env_.sources_root_path)
 
+    def get_figures_files_for(self, local_file_path):
+        import os
+        root = self.get_sources_structure()
+        dirs = local_file_path.split(os.sep)[:-1]
+
+        if dirs[0] == '.':
+            if len(dirs) > 1:
+                dirs = dirs[1:]
+            else:
+                dirs = []
+
+        parent = root
+        for d in dirs:
+            for f in parent.folders:
+                if f.name == d:
+                    parent = f
+                    break
+
+        if len(dirs)==0:
+            dirs = ['.']
+
+        if parent.local_path != os.sep.join(dirs):
+            msg = 'Wrong path {} while listing file source images'.format(local_file_path)
+            self.error_raised.emit(msg)
+            return []
+
+        figures = []
+        figfolder = parent.get_child('figures')
+        if figfolder:
+            file_folder_name = local_file_path.split(os.sep)[-1].split('.')[0]
+            files_folder = figfolder.get_child(file_folder_name)
+            if files_folder:
+                figures = filter(lambda f: f.name.endswith('.png') or f.name.endswith('.jpg'), files_folder.files)
+
+        return figures
+
     def set_active_file(self, source_file_location):
         """
         Sets RST file content and updates html file related to providede source
@@ -171,6 +195,7 @@ class Session(QObject):
             self.save_active_file()
         self._active_file_ = source_file_location
         self._load_active_file_content_()
+        self.html_output_changed.emit()
 
     def get_active_file_content(self):
         return self._content_
@@ -180,8 +205,8 @@ class Session(QObject):
             return
         self._content_ = content
         self.save_active_file()
-        self._env_.build_website(lambda output: self.html_output_changed.emit(),
-                                 lambda error: self._errors_.show("Couldn't render html\n"+error))
+        self.update_website()
+
 
     def render_active_file(self):
         """
@@ -210,8 +235,15 @@ class Session(QObject):
         return self.get_file_output(self._active_file_)
 
     def update_website(self):
-        out, err = self._env_.build_website().communicate()
-        print(out)
+        def handle_success(result):
+            print result
+            self.html_content_changed.emit()
+
+        def handle_error(error):
+            print error
+            self.error_raised.emit("Couldn't render html\n" + error)
+
+        self._env_.build_website(handle_success, handle_error)
 
     def save_active_file(self):
         with open(self._active_full_path_, 'w') as f:

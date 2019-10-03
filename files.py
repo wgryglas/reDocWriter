@@ -13,6 +13,10 @@ class FileNode:
     def is_dir(self):
         return False
 
+    def date(self):
+        from os.path import getctime
+        return
+
 
 class DirNode(FileNode):
     def __init__(self, name, local_path, full_path, parent=None):
@@ -48,6 +52,12 @@ class DirNode(FileNode):
     @property
     def folders(self):
         return filter(lambda f: f.is_dir, self._children_)
+
+    def get_child(self, name):
+        for f in self._children_:
+            if f.name == name or f.name.split('.')[0] == name:
+                return f
+        return None
 
     @property
     def is_dir(self):

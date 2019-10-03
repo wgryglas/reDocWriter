@@ -15,9 +15,8 @@ print repo.isModified()
 session = Session(repo.root_path)
 
 
-session.update_website()
 # session.update_website()
 
 # session.start_local_server()
 
-print session.get_sources_structure()
+#print session.get_sources_structure()

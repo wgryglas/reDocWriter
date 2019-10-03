@@ -21,8 +21,12 @@ def start_process(onSuccess, onError, cwd, commands):
         if proc.returncode == 0:
             onSuccess(std)
         else:
-            onError(err)
+            if not err:
+                onError("Unknown error")
+            else:
+                onError(str(err))
         return
+
     thread = threading.Thread(target=runInThread, args=(onSuccess, onError, cwd, commands))
     thread.start()
     # returns immediately after the thread starts
