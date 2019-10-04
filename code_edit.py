@@ -4,14 +4,13 @@ import sys
 from pyqode.core import api, modes, panels
 from pyqode.rst.backend import server
 from pyqode.rst import modes as rstmodes
-
+from pyqode.qt.QtGui import QFont
 # Define linter after loading role names so that restructuredtext_linter will see custom roles
 # Can't be done in external file to make it work, what is strange linter function must also be high level function,
 # can't be embaded in the class objct to work with pyqode error checker
 import restructuredtext_lint
 import docutils_customization
 docutils_customization.register_role_names()
-
 
 
 ERRORS_LEVELS = {
@@ -21,6 +20,7 @@ ERRORS_LEVELS = {
     'SEVERE': 2
 }
 
+
 def linter(request_data):
     code = request_data['code']
     ret_val = []
@@ -28,7 +28,17 @@ def linter(request_data):
         ret_val.append((err.message, ERRORS_LEVELS[err.type], err.line - 1))
     return ret_val
 
+
 class RstCodeEdit(api.CodeEdit):
+    """
+    Require custom CodeEdit to handle custom
+    roles and derictives in Error Checkeer
+
+    This is copy paste from original pyqode.rst.code_edit.RstCodeEdit
+    The key was to define custom roles in this file, otherwise could not
+    make Error Checker see custom roles. Custom roles are define in standard way
+    under the docutils framework
+    """
     # generic
     mimetypes = ['text/x-rst']
 
@@ -40,7 +50,7 @@ class RstCodeEdit(api.CodeEdit):
     def __init__(self, parent=None, server_script=None,
                  interpreter=sys.executable, args=None,
                  create_default_actions=True, color_scheme='qt',
-                 reuse_backend=False, role_names=[]):
+                 reuse_backend=False):
         super(RstCodeEdit, self).__init__(parent, create_default_actions)
         if server_script is None:
             server_script = self.DEFAULT_SERVER
@@ -51,7 +61,7 @@ class RstCodeEdit(api.CodeEdit):
         # append panels
         self.panels.append(panels.LineNumberPanel())
         self.panels.append(panels.SearchAndReplacePanel(),
-                           api.Panel.Position.BOTTOM)
+                           api.Panel.Position.TOP)
 
         # append modes
         self.modes.append(modes.CursorHistoryMode())

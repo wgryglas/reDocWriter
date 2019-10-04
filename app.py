@@ -30,6 +30,8 @@ class Settings:
     def __init__(self):
         self.sort_images = 'date' #name
         self.relative_paths = False
+        self.figure_scale = '50 %'
+        self.editor_font = 'Mono'
 
 
 class MainWindow(QWidget):
@@ -50,7 +52,9 @@ class MainWindow(QWidget):
 
         self.project_tree = QTreeView()
 
-        self.editor = RstCodeEdit(color_scheme='qt', role_names=['lorem'])  # api.CodeEdit()
+        self.editor = RstCodeEdit(color_scheme='qt')  # api.CodeEdit()
+        self.editor.font_name = self.settings.editor_font
+
         # self.codeinput.setFontPointSize(12)
 
         self.webview = QWebView()
@@ -116,7 +120,7 @@ class MainWindow(QWidget):
 
     def insert_image_in_current_position(self, path):
         from editr_actions import format_image
-        self.insert_directive_in_current_position(format_image(path, scale='50 %'))
+        self.insert_directive_in_current_position(format_image(path, scale=self.settings.figure_scale))
 
     def mark_unsaved(self):
         self.text_saved = False
@@ -213,22 +217,18 @@ class MainWindow(QWidget):
     def layout_components(self):
         container = QSplitter()
         container.setOrientation(Qt.Horizontal)
-        container.addWidget(self.project_tree)
 
-        self.project_tree.setMaximumWidth(300)
+        left_widget = QSplitter()
+        left_widget.setMaximumWidth(300)
+        left_widget.setOrientation(Qt.Vertical)
+        left_widget.addWidget(self.project_tree)
+        left_widget.addWidget(self.images_gallery)
+
+        container.addWidget(left_widget)
+
         container.addWidget(self.editor)
+        self.editor.setMinimumWidth(600)
 
-        central_widget = QSplitter()
-        central_widget.setOrientation(Qt.Vertical)
-        # central_layout = QVBoxLayout(central_widget)
-        # central_layout.addWidget(self.editor)
-        # central_layout.addWidget(self.images_gallery)
-        central_widget.addWidget(self.editor)
-        central_widget.addWidget(self.images_gallery)
-        # self.images_gallery.setMaximumHeight(100)
-        self.editor.setMinimumWidth(500)
-
-        container.addWidget(central_widget)
         container.addWidget(self.webview)
 
         layout = QVBoxLayout()

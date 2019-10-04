@@ -1,7 +1,7 @@
 from pyqode.qt.QtCore import Signal, QSize, Qt
 from pyqode.qt.QtGui import QIcon
 from pyqode.qt.QtWidgets import QWidget, QListWidget, QListWidgetItem, QVBoxLayout, QPushButton, QHBoxLayout, \
-    QSizePolicy
+    QSizePolicy, QStyle
 from uitreads import LoadPixmaps
 
 
@@ -22,21 +22,29 @@ class ImagesPanel(QWidget):
 
         self.buttons_bar = QWidget()
 
-        self.insert_button = QPushButton('Insert')
+        self.insert_button = QPushButton()
+        self.insert_button.setIcon(self.style().standardIcon(QStyle.SP_ArrowDown))
+        self.insert_button.setToolTip('Insert as image')
         self.insert_button.setEnabled(False)
         self.insert_button.clicked.connect(self._do_insert_)
+        self.add_files_button = QPushButton()
+        self.add_files_button.setIcon(self.style().standardIcon(QStyle.SP_DialogOpenButton))
+        self.add_files_button.setToolTip('Import images to repository')
 
         self._do_layout_()
 
     def _pupulate_buttons_(self):
         box = QHBoxLayout()
+        box.setContentsMargins(0, 5, 5, 0)
         box.addWidget(self.insert_button)
         box.addStretch(20)
+        box.addWidget(self.add_files_button)
         self.buttons_bar.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed))
         self.buttons_bar.setLayout(box)
 
     def _do_layout_(self):
         box = QVBoxLayout()
+        box.setContentsMargins(0, 0, 0, 0)
         box.addWidget(self.buttons_bar)
         box.addWidget(self.list)
         self._pupulate_buttons_()
@@ -101,3 +109,7 @@ class ImagesPanel(QWidget):
     def _do_insert_(self):
         path = self.selected_file.local_path if self._settings_.relative_paths else self.selected_file.full_path
         self.on_insert_image.emit(path)
+
+
+    def _open_import_(self):
+        self._session_.root

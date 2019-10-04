@@ -51,6 +51,9 @@ class BaseWebsiteBuildEnvironment:
     def source_full_path(self, source_local_path):
         return self.repository_path + os.sep + self.rst_location + os.sep + source_local_path
 
+    # def source_figures_path(self, source_local_path):
+    #     return self.
+
     def __del__(self):
         if self.server_process:
             self.server_process.kill()
@@ -148,6 +151,10 @@ class Session(QObject):
         :return: Files Tree
         """
         return create_file_tree(self._env_.sources_root_path)
+
+    @property
+    def get_active_file_figures_folder(self):
+        return ""
 
     def get_figures_files_for(self, local_file_path):
         import os
