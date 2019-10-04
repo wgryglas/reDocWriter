@@ -120,6 +120,8 @@ class Session(QObject):
     content_changed = Signal(str)
     error_raised = Signal(str)
 
+    sources_changed = Signal()
+
     # active_file_changed = Signal()
 
     def __init__(self, project_root, errors=ErrorHandler(), **kwargs):
@@ -142,6 +144,10 @@ class Session(QObject):
         self._content_ = ""
 
         self.error_raised.connect(errors.show)
+
+
+    def start(self):
+        self.sources_changed.emit()
 
 
     @property

@@ -34,7 +34,7 @@ class ImagesPanel(QWidget):
 
         self._do_layout_()
 
-    def _pupulate_buttons_(self):
+    def _layout_buttons_(self):
         box = QHBoxLayout()
         box.setContentsMargins(0, 5, 5, 0)
         box.addWidget(self.add_files_button)
@@ -48,7 +48,7 @@ class ImagesPanel(QWidget):
         box.setContentsMargins(0, 0, 0, 0)
         box.addWidget(self.buttons_bar)
         box.addWidget(self.list)
-        self._pupulate_buttons_()
+        self._layout_buttons_()
         self.setLayout(box)
 
     def _configure_list_(self):
@@ -59,7 +59,7 @@ class ImagesPanel(QWidget):
         # self.list.setWordWrap(True)
         self.list.setIconSize(QSize(60, 60))
         # self.list.setMovement(QListWidget.Static)
-        self.list.setMaximumHeight(400)
+        #self.list.setMaximumHeight(400)
         # self.list.setResizeMode(QListWidget.Adjust)
 
     def show_source_images(self, source_local_path):

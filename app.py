@@ -8,6 +8,7 @@ from pyqode.qt.QtWebWidgets import *
 # use custom RstCodeEdit because could not install custom roles to work with linter
 from code_edit import RstCodeEdit
 from images_panel import ImagesPanel
+from sources_panel import SourcesTree
 from core import Session
 
 
@@ -47,7 +48,8 @@ class MainWindow(QWidget):
 
         self.buttons_bar = QWidget()
 
-        self.project_tree = QTreeView()
+        self.project_tree = SourcesTree(self.session, self.errors)
+        self.project_tree.source_selection_changed.connect(self._on_file_selection_)
 
         self.editor = RstCodeEdit(color_scheme='qt')  # api.CodeEdit()
 
@@ -66,8 +68,6 @@ class MainWindow(QWidget):
         self.layout_toolbar()
 
         self.layout_components()
-
-        self.configure_tree()
 
         self.configure_editor()
 
@@ -89,6 +89,8 @@ class MainWindow(QWidget):
         self.session.html_content_changed.connect(lambda: self.webview.reload())
 
         self.images_gallery.on_insert_image.connect(self.insert_image_in_current_position)
+
+        self.session.start()
 
 
     def configure_editor(self):
@@ -131,27 +133,10 @@ class MainWindow(QWidget):
             self.text_saved = True
             self.session.set_active_file_content(self.editor.toPlainText())
 
-    def configure_tree(self):
-        from uimodels import create_directory_tree_model
-        model = create_directory_tree_model(self.session.get_sources_structure(),
-                                            file_filter=lambda f: f.name.endswith('.rst'),
-                                            folder_filter=lambda d: d.name != 'figures')
-        self.project_tree.setModel(model)
-
-        selection_model = QItemSelectionModel(model)
-        selection_model.selectionChanged.connect(self._on_file_selection_)
-
-        self.project_tree.setSelectionModel(selection_model)
-        self.project_tree.setSelectionMode(QAbstractItemView.SingleSelection)
-
-    def _on_file_selection_(self, qindex, flags):
-        index = self.project_tree.selectedIndexes()[0]
-        item = index.model().itemFromIndex(index)
-        node = item.data()
-
-        if not node.is_dir:
-            self.session.set_active_file(node.local_path)
-            self.images_gallery.show_source_images(node.local_path)
+    def _on_file_selection_(self, selected_file):
+        if selected_file and not selected_file.is_dir:
+            self.session.set_active_file(selected_file.local_path)
+            self.images_gallery.show_source_images(selected_file.local_path)
 
     def display_new_editor_content(self, content):
         self.editor.clear()
