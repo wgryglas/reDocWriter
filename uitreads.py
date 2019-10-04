@@ -16,7 +16,11 @@ class UIThread(QObject):
         pass
 
     def _exec_function_(self, *args):
-        self.when_finished.emit(self._command_(*args))
+        result = self._command_(*args)
+        if result:
+            self.when_finished.emit(result)
+        else:
+            self.when_finished.emit([])  #dummy result so that signal signature will be matched
 
     def start(self, *args):
         t = threading.Thread(name=self.name, target=self._exec_function_, args=args)
@@ -34,3 +38,21 @@ class LoadPixmaps(UIThread):
         return map(QPixmap, paths)
 
 
+class CopyFiles(UIThread):
+    def __init__(self):
+        UIThread.__init__(self, 'CopyFiles')
+
+    def _command_(self, *args):
+        assert len(args) == 2
+
+        from shutil import copyfile
+        import os
+
+        dest_folder = args[0]
+        src = args[1]
+
+        print dest_folder
+        print src
+
+        for path in src:
+            copyfile(path, dest_folder+os.sep+os.path.basename(path))

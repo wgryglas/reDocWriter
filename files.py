@@ -1,3 +1,19 @@
+import os
+
+
+def dir_path_without_last_sep(path):
+    if path.endswith(os.sep):
+        return path[:-len(os.sep)]
+    else:
+        return path
+
+
+def path_without_in_place_dot(path):
+    if path.startswith('./'):
+        return path[2:]
+    else:
+        return path
+
 
 class FileNode:
     def __init__(self, name, local_path, full_path, parent):
@@ -29,21 +45,27 @@ class DirNode(FileNode):
     def append(self, node):
         self._children_.append(node)
 
-    def find_folder_by_path(self, full_path):
-        if self.full_path == full_path:
+    def find_folder_by_path(self, path):
+        full_path = dir_path_without_last_sep(self.full_path)
+        path = dir_path_without_last_sep(path)
+
+        if self.full_path == path:
             return self
-        else:
-            folder = self
-            while folder:
-                dirs = filter(lambda p: p.full_path in full_path, folder.folders)
-                dirs.sort(key=lambda p: len(p.full_path))
-                if len(dirs) > 0:
-                    folder = dirs[0]
-                    if folder.full_path == full_path:
-                        return folder
-                else:
-                    folder = None
-            return folder
+
+        if self.full_path not in path:
+            return None
+
+        current = self
+        sub_paths = path[len(full_path)+1:].split(os.sep)
+        for processing in sub_paths:
+            matching = filter(lambda d: d.name == processing, current.folders)
+            if len(matching) != 1:
+                return None
+            current = matching[0]
+            if dir_path_without_last_sep(current.full_path) == path:
+                return current
+
+        return None
 
     @property
     def files(self):

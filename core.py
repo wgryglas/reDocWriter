@@ -44,6 +44,19 @@ class BaseWebsiteBuildEnvironment:
         :return:
         """
 
+    def get_figures_folder_path_for(self, local_file_path):
+        """
+        :param local_file_path:
+        :return: str, local path to folder containing images for provided source
+        """
+        import os
+        local_file_path = path_without_in_place_dot(local_file_path)
+        paths = local_file_path.split(os.sep)
+        paths[-1] = paths[-1].split('.')[0]
+        result = ['figures']
+        result.extend(paths)
+        return os.sep.join(result)
+
     @property
     def sources_root_path(self):
         return self.repository_path + os.sep + self.rst_location
@@ -112,6 +125,8 @@ class Session(QObject):
     def __init__(self, project_root, errors=ErrorHandler(), **kwargs):
         QObject.__init__(self)
 
+        #self._settings_ = settins
+
         self._root_ = project_root
 
         self._env_ = BaseWebsiteBuildEnvironment(project_root) if 'config' not in kwargs else kwargs['config']
@@ -130,7 +145,11 @@ class Session(QObject):
 
 
     @property
-    def _active_full_path_(self):
+    def active_local_path(self):
+        return self._active_file_
+
+    @property
+    def active_full_path(self):
         return self._env_.source_full_path(self._active_file_)
 
     @property
@@ -153,42 +172,69 @@ class Session(QObject):
         return create_file_tree(self._env_.sources_root_path)
 
     @property
-    def get_active_file_figures_folder(self):
-        return ""
+    def active_file_figures_folder(self):
+        root = self.get_sources_structure()
+        figures_folder_path = self._env_.get_figures_folder_path_for(self._active_file_)
+        figures_folder_full_path = self._env_.source_full_path(figures_folder_path)
+        return root.find_folder_by_path(figures_folder_full_path)
 
     def get_figures_files_for(self, local_file_path):
         import os
-        root = self.get_sources_structure()
-        dirs = local_file_path.split(os.sep)[:-1]
 
-        if dirs[0] == '.':
-            if len(dirs) > 1:
-                dirs = dirs[1:]
-            else:
-                dirs = []
+        figures_folder_path = self._env_.get_figures_folder_path_for(local_file_path)
+        figures_folder_full_path = self._env_.source_full_path(figures_folder_path)
 
-        parent = root
-        for d in dirs:
-            for f in parent.folders:
-                if f.name == d:
-                    parent = f
-                    break
-
-        if len(dirs)==0:
-            dirs = ['.']
-
-        if parent.local_path != os.sep.join(dirs):
-            msg = 'Wrong path {} while listing file source images'.format(local_file_path)
-            self.error_raised.emit(msg)
+        if not os.path.exists(figures_folder_full_path):
+            self._errors_.show('Figures folder for {} source file does not exist.\n'
+                               'Make sure that {} path exist'.format(local_file_path, figures_folder_full_path))
             return []
 
-        figures = []
-        figfolder = parent.get_child('figures')
-        if figfolder:
-            file_folder_name = local_file_path.split(os.sep)[-1].split('.')[0]
-            files_folder = figfolder.get_child(file_folder_name)
-            if files_folder:
-                figures = filter(lambda f: f.name.endswith('.png') or f.name.endswith('.jpg'), files_folder.files)
+        if not os.path.isdir(figures_folder_full_path):
+            self._errors_.show('{} is not directory.\n'
+                               'The path should store images for {} for *.rst source'.
+                               format(local_file_path, figures_folder_full_path))
+            return []
+
+        root = self.get_sources_structure()
+        folder = root.find_folder_by_path(figures_folder_full_path)
+
+        if not folder:
+            self._errors_.show("Couldn't find {} path in following sources tree {}".format(figures_folder_full_path, root))
+            return []
+
+        figures = filter(lambda f: f.name.endswith('.png') or f.name.endswith('.jpg'), folder.files)
+
+        # root = self.get_sources_structure()
+        # dirs = local_file_path.split(os.sep)[:-1]
+        #
+        # if dirs[0] == '.':
+        #     if len(dirs) > 1:
+        #         dirs = dirs[1:]
+        #     else:
+        #         dirs = []
+        #
+        # parent = root
+        # for d in dirs:
+        #     for f in parent.folders:
+        #         if f.name == d:
+        #             parent = f
+        #             break
+        #
+        # if len(dirs) == 0:
+        #     dirs = ['.']
+        #
+        # if parent.local_path != os.sep.join(dirs):
+        #     msg = 'Wrong path {} while listing file source images'.format(local_file_path)
+        #     self.error_raised.emit(msg)
+        #     return []
+        #
+        # figures = []
+        # figfolder = parent.get_child('figures')
+        # if figfolder:
+        #     file_folder_name = local_file_path.split(os.sep)[-1].split('.')[0]
+        #     files_folder = figfolder.get_child(file_folder_name)
+        #     if files_folder:
+        #         figures = filter(lambda f: f.name.endswith('.png') or f.name.endswith('.jpg'), files_folder.files)
 
         return figures
 
@@ -253,11 +299,11 @@ class Session(QObject):
         self._env_.build_website(handle_success, handle_error)
 
     def save_active_file(self):
-        with open(self._active_full_path_, 'w') as f:
+        with open(self.active_full_path, 'w') as f:
             f.write(self._content_)
 
     def _load_active_file_content_(self):
-        with open(self._active_full_path_, 'r') as f:
+        with open(self.active_full_path, 'r') as f:
             self._content_ = ''.join(f.readlines())
             self._file_is_up_to_date_ = True
             self.content_changed.emit(self._content_)

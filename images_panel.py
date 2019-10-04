@@ -1,7 +1,7 @@
 from pyqode.qt.QtCore import Signal, QSize, Qt
 from pyqode.qt.QtGui import QIcon
 from pyqode.qt.QtWidgets import QWidget, QListWidget, QListWidgetItem, QVBoxLayout, QPushButton, QHBoxLayout, \
-    QSizePolicy, QStyle
+    QSizePolicy, QStyle, QFileDialog
 from uitreads import LoadPixmaps
 
 
@@ -30,15 +30,16 @@ class ImagesPanel(QWidget):
         self.add_files_button = QPushButton()
         self.add_files_button.setIcon(self.style().standardIcon(QStyle.SP_DialogOpenButton))
         self.add_files_button.setToolTip('Import images to repository')
+        self.add_files_button.clicked.connect(self._open_import_)
 
         self._do_layout_()
 
     def _pupulate_buttons_(self):
         box = QHBoxLayout()
         box.setContentsMargins(0, 5, 5, 0)
-        box.addWidget(self.insert_button)
-        box.addStretch(20)
         box.addWidget(self.add_files_button)
+        box.addStretch(20)
+        box.addWidget(self.insert_button)
         self.buttons_bar.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed))
         self.buttons_bar.setLayout(box)
 
@@ -62,7 +63,6 @@ class ImagesPanel(QWidget):
         # self.list.setResizeMode(QListWidget.Adjust)
 
     def show_source_images(self, source_local_path):
-        self.selected_file = None
         image_files = self._session_.get_figures_files_for(source_local_path)
         self.display_figures(image_files)
 
@@ -110,6 +110,17 @@ class ImagesPanel(QWidget):
         path = self.selected_file.local_path if self._settings_.relative_paths else self.selected_file.full_path
         self.on_insert_image.emit(path)
 
-
     def _open_import_(self):
-        self._session_.root
+        from uitreads import CopyFiles
+
+        folder = self._session_.active_file_figures_folder
+        dialog = QFileDialog()
+        # dialog.setFileMode(QFileDialog.ExistingFiles)
+        # dialog.setModal(True)
+        names = dialog.getOpenFileNames(self, 'Import images', folder.full_path, 'PNG (*.png);;JPG (*.jpg)')[0]
+
+        copy_op = CopyFiles()
+        copy_op.when_finished.connect(lambda _: self.show_source_images(self._session_.active_local_path))
+        copy_op.start(folder.full_path, names)
+
+

@@ -1,16 +1,15 @@
 import os
 import sys
-import threading
-
-os.environ['QT_API'] = 'PySide'
-
 from enum import Enum
+os.environ['QT_API'] = 'PySide'
 from pyqode.qt.QtCore import *
 from pyqode.qt.QtWidgets import *
 from pyqode.qt.QtWebWidgets import *
 # use custom RstCodeEdit because could not install custom roles to work with linter
 from code_edit import RstCodeEdit
 from images_panel import ImagesPanel
+from core import Session
+
 
 class ColorScheme(Enum):
     defualt = 1
@@ -23,15 +22,13 @@ def main():
     w.show()
     sys.exit(app.exec_())
 
-from core import Session
-
 
 class Settings:
     def __init__(self):
         self.sort_images = 'date' #name
-        self.relative_paths = False
-        self.figure_scale = '50 %'
-        self.editor_font = 'Mono'
+        self.relative_paths = True
+        self.figure_width = '400 px'
+        self.editor_font = ''
 
 
 class MainWindow(QWidget):
@@ -45,15 +42,17 @@ class MainWindow(QWidget):
 
         self.errors = ErrorHandler(DialogErrorView(self, app))
 
-        # self.session = Session('/home/wgryglas/python/pelicanDoc', self.errors)
-        self.session = Session('/home/wgryglas/Code/Python/pelicanReDoc', self.errors)
+        self.session = Session('/home/wgryglas/python/pelicanDoc', self.errors)
+        # self.session = Session('/home/wgryglas/Code/Python/pelicanReDoc', self.errors)
 
         self.buttons_bar = QWidget()
 
         self.project_tree = QTreeView()
 
         self.editor = RstCodeEdit(color_scheme='qt')  # api.CodeEdit()
-        self.editor.font_name = self.settings.editor_font
+
+        if self.settings.editor_font and len(self.settings.editor_font) > 0:
+            self.editor.font_name = self.settings.editor_font
 
         # self.codeinput.setFontPointSize(12)
 
@@ -120,7 +119,7 @@ class MainWindow(QWidget):
 
     def insert_image_in_current_position(self, path):
         from editr_actions import format_image
-        self.insert_directive_in_current_position(format_image(path, scale=self.settings.figure_scale))
+        self.insert_directive_in_current_position(format_image(path, width=self.settings.figure_width))
 
     def mark_unsaved(self):
         self.text_saved = False
