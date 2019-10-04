@@ -14,7 +14,7 @@ from core import Session
 
 class ColorScheme(Enum):
     defualt = 1
-    dracula = 2
+    darcula = 2
 
 
 def main():
@@ -30,6 +30,7 @@ class Settings:
         self.relative_paths = True
         self.figure_width = '400 px'
         self.editor_font = ''
+        self.color_scheme = ColorScheme.defualt
 
 
 class MainWindow(QWidget):
@@ -43,15 +44,15 @@ class MainWindow(QWidget):
 
         self.errors = ErrorHandler(DialogErrorView(self, app))
 
-        self.session = Session('/home/wgryglas/python/pelicanDoc', self.errors)
-        # self.session = Session('/home/wgryglas/Code/Python/pelicanReDoc', self.errors)
+        # self.session = Session('/home/wgryglas/python/pelicanDoc', self.errors)
+        self.session = Session('/home/wgryglas/Code/Python/pelicanReDoc', self.errors)
 
         self.buttons_bar = QWidget()
 
         self.project_tree = SourcesTree(self.session, self.errors)
         self.project_tree.source_selection_changed.connect(self._on_file_selection_)
 
-        self.editor = RstCodeEdit(color_scheme='qt')  # api.CodeEdit()
+        self.editor = RstCodeEdit(color_scheme='qt' if self.settings.color_scheme == ColorScheme.defualt else 'darcula')  # api.CodeEdit()
 
         if self.settings.editor_font and len(self.settings.editor_font) > 0:
             self.editor.font_name = self.settings.editor_font
@@ -89,6 +90,8 @@ class MainWindow(QWidget):
         self.session.html_content_changed.connect(lambda: self.webview.reload())
 
         self.images_gallery.on_insert_image.connect(self.insert_image_in_current_position)
+
+        self.set_color_scheme(self.settings.color_scheme)
 
         self.session.start()
 
@@ -226,7 +229,7 @@ class MainWindow(QWidget):
             self.setPalette(QPalette())
         else:
             # self.setStyleSheet("MainWindow{background-color:rgb(37, 37, 37)}")
-            self.setStyleSheet("QPushButton{background-color:rgb(37, 37, 37)}")
+            self.setStyleSheet("QPushButton{background-color:rgb(37, 37, 37); border-radius:3px; padding:5px}")
             palette = QPalette()
             palette.setColor(QPalette.Window, QColor(53, 53, 53))
             palette.setColor(QPalette.WindowText, Qt.white)
