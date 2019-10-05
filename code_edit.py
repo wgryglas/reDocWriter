@@ -71,8 +71,7 @@ class RstCodeEdit(api.CodeEdit):
         # self.modes.append(modes.CaretLineHighlighterMode())
 
         self.modes.append(modes.RightMarginMode())
-        self.modes.append(rstmodes.RstSH(
-            self.document(), color_scheme=api.ColorScheme(color_scheme)))
+        self.modes.append(rstmodes.RstSH(self.document(), color_scheme=api.ColorScheme(color_scheme)))
         self.modes.append(modes.ZoomMode())
         cc = modes.CodeCompletionMode()
         cc.trigger_symbols[:] = []

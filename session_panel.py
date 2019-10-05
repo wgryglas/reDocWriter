@@ -10,6 +10,7 @@ from app_settings import ColorScheme
 from git_repository import GitRepository
 from uitreads import CustomRoutine
 
+
 class SessionPanel(QWidget):
 
     def __init__(self, gitRepo, app, settings):
@@ -31,21 +32,16 @@ class SessionPanel(QWidget):
         self.project_tree.source_selection_changed.connect(self._on_file_selection_)
         self.session.sources_changed.connect(self.project_tree.update_model)
 
-        print self.settings
         self.editor = RstCodeEdit(color_scheme='qt' if self.settings.color_scheme == ColorScheme.defualt else 'darcula')  # api.CodeEdit()
 
         if self.settings.editor_font and len(self.settings.editor_font) > 0:
             self.editor.font_name = self.settings.editor_font
 
+        self.configure_editor()
+
         self.webview = QWebView()
 
         self.images_gallery = ImagesPanel(self.session, self.settings)
-
-        self.layout_toolbar()
-
-        self.layout_components()
-
-        self.configure_editor()
 
         self.render_timer = QTimer()
         self.render_timer.timeout.connect(self.save_text)
@@ -56,7 +52,9 @@ class SessionPanel(QWidget):
 
         self.images_gallery.on_insert_image.connect(self.insert_image_in_current_position)
 
-        self.set_color_scheme(self.settings.color_scheme)
+        self.layout_toolbar()
+
+        self.layout_components()
 
         self.session.start()
 
@@ -139,14 +137,18 @@ class SessionPanel(QWidget):
         sync_scroll = QCheckBox()
         sync_scroll.setText('Sync Scroll')
         sync_scroll.clicked.connect(lambda: self.setSyncScrolling(sync_scroll.isChecked()))
+        if self.settings.sync_scrolling:
+            sync_scroll.animateClick()
 
         repo = QComboBox()
         repo.setEditable(True)
         repo.setMinimumWidth(200)
 
         remote = self.session.remote_address
+
         # Async repos check
         repo.addItem(remote.split(':')[1])
+
         def collect_repo_names(local_dirs):
             collection = []
             print local_dirs
@@ -156,13 +158,13 @@ class SessionPanel(QWidget):
                     collection.append(r.address.split(':')[1])
             return collection
 
-        def applyNames(names):
+        def apply_names(names):
             print names
             for name in names:
                 repo.addItem(name)
 
         collect_repos = CustomRoutine(collect_repo_names)
-        collect_repos.when_finished.connect(applyNames)
+        collect_repos.when_finished.connect(apply_names)
         collect_repos.start(self.settings.recent_existing)
 
         # UI thread repos check
@@ -196,9 +198,6 @@ class SessionPanel(QWidget):
     def show_url(self, url_string):
         self.webview.load(QUrl(url_string))
 
-    def show_file(self, local_file_path):
-        pass
-
     def layout_components(self):
         container = QSplitter()
         container.setOrientation(Qt.Horizontal)
@@ -222,25 +221,4 @@ class SessionPanel(QWidget):
 
         self.setLayout(layout)
 
-    def set_color_scheme(self, scheme):
-        if scheme == ColorScheme.defualt:
-            self.setPalette(QPalette())
-        else:
-            # self.setStyleSheet("MainWindow{background-color:rgb(37, 37, 37)}")
-            self.setStyleSheet("QPushButton{background-color:rgb(37, 37, 37); border-radius:3px; padding:5px}")
-            palette = QPalette()
-            palette.setColor(QPalette.Window, QColor(53, 53, 53))
-            palette.setColor(QPalette.WindowText, Qt.white)
-            palette.setColor(QPalette.Base, QColor(37, 37, 37))
-            palette.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
-            palette.setColor(QPalette.ToolTipBase, Qt.white)
-            palette.setColor(QPalette.ToolTipText, Qt.white)
-            palette.setColor(QPalette.Text, Qt.white)
-            palette.setColor(QPalette.Button, QColor(53, 53, 53))
-            palette.setColor(QPalette.ButtonText, Qt.white)
-            palette.setColor(QPalette.BrightText, Qt.red)
-            palette.setColor(QPalette.Link, QColor(42, 130, 218))
-            palette.setColor(QPalette.Highlight, QColor(42, 130, 218))
-            palette.setColor(QPalette.HighlightedText, Qt.black)
 
-            self.setPalette(palette)

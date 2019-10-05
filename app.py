@@ -14,6 +14,7 @@ from session_panel import SessionPanel, ColorScheme
 from launcher_panel import LauncherPanel
 from git_repository import GitRepository
 
+
 class MainWindow(QWidget):
     def __init__(self, app, settings, *args):
         QWidget.__init__(self, *args)
@@ -27,6 +28,8 @@ class MainWindow(QWidget):
         self.main_layout.addWidget(self.launcher)
 
         self.launcher.root_path_selected.connect(self.start_session)
+
+        self.set_color_scheme(self.settings.color_scheme)
 
     def start_session(self, root_path):
 
@@ -47,6 +50,29 @@ class MainWindow(QWidget):
 
         if not self.isVisible():
             self.show()
+
+    def set_color_scheme(self, scheme):
+        if scheme == ColorScheme.defualt:
+            self.setPalette(QPalette())
+        else:
+            self.setStyleSheet("MainWindow{background-color:rgb(37, 37, 37)}")
+            # self.setStyleSheet("QPushButton{background-color:rgb(37, 37, 37); border-radius:3px; padding:5px}")
+            palette = QPalette()
+            palette.setColor(QPalette.Window, QColor(53, 53, 53))
+            palette.setColor(QPalette.WindowText, Qt.white)
+            palette.setColor(QPalette.Base, QColor(37, 37, 37))
+            palette.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
+            palette.setColor(QPalette.ToolTipBase, Qt.white)
+            palette.setColor(QPalette.ToolTipText, Qt.white)
+            palette.setColor(QPalette.Text, Qt.white)
+            palette.setColor(QPalette.Button, QColor(53, 53, 53))
+            palette.setColor(QPalette.ButtonText, Qt.white)
+            palette.setColor(QPalette.BrightText, Qt.red)
+            palette.setColor(QPalette.Link, QColor(42, 130, 218))
+            palette.setColor(QPalette.Highlight, QColor(42, 130, 218))
+            palette.setColor(QPalette.HighlightedText, Qt.black)
+
+            self.setPalette(palette)
 
 
 def main():

@@ -84,14 +84,9 @@ class Session(QObject):
     def __init__(self, git_repo, errors=ErrorHandler(), **kwargs):
         QObject.__init__(self)
 
-        #self._settings_ = settins
-
         self._root_ = git_repo.root_path
-
         self._env_ = BaseWebsiteBuildEnvironment(git_repo.root_path) if 'config' not in kwargs else kwargs['config']
-
         self._errors_ = errors
-
         self._repo_ = git_repo
         if not self._repo_.isValid():
             errors.show("Provided path is not a valid git repository")
@@ -99,13 +94,10 @@ class Session(QObject):
 
         self._active_file_ = ""
         self._content_ = ""
-
         self.error_raised.connect(errors.show)
-
 
     def start(self):
         self.sources_changed.emit()
-
 
     @property
     def active_local_path(self):
@@ -171,38 +163,6 @@ class Session(QObject):
 
         figures = filter(lambda f: f.name.endswith('.png') or f.name.endswith('.jpg'), folder.files)
 
-        # root = self.get_sources_structure()
-        # dirs = local_file_path.split(os.sep)[:-1]
-        #
-        # if dirs[0] == '.':
-        #     if len(dirs) > 1:
-        #         dirs = dirs[1:]
-        #     else:
-        #         dirs = []
-        #
-        # parent = root
-        # for d in dirs:
-        #     for f in parent.folders:
-        #         if f.name == d:
-        #             parent = f
-        #             break
-        #
-        # if len(dirs) == 0:
-        #     dirs = ['.']
-        #
-        # if parent.local_path != os.sep.join(dirs):
-        #     msg = 'Wrong path {} while listing file source images'.format(local_file_path)
-        #     self.error_raised.emit(msg)
-        #     return []
-        #
-        # figures = []
-        # figfolder = parent.get_child('figures')
-        # if figfolder:
-        #     file_folder_name = local_file_path.split(os.sep)[-1].split('.')[0]
-        #     files_folder = figfolder.get_child(file_folder_name)
-        #     if files_folder:
-        #         figures = filter(lambda f: f.name.endswith('.png') or f.name.endswith('.jpg'), files_folder.files)
-
         return figures
 
     def set_active_file(self, source_file_location):
@@ -226,7 +186,6 @@ class Session(QObject):
         self._content_ = content
         self.save_active_file()
         self.update_website()
-
 
     def render_active_file(self):
         """

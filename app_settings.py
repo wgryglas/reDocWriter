@@ -13,7 +13,7 @@ class AppSettings:
         self.figure_width = '400 px'
         self.editor_font = ''
         self.color_scheme = ColorScheme.defualt
-        self.sync_scrolloing = True
+        self.sync_scrolling = True
         self.recent = ['/home/wgryglas/python/pelicanDoc', '/home/wgryglas/Code/Python/pelicanReDoc']
 
     @property

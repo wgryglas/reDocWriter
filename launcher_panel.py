@@ -1,9 +1,9 @@
 from pyqode.qt.QtCore import *
 from pyqode.qt.QtWidgets import *
-from pyqode.qt.QtWebWidgets import *
 from cusotm_widgets import LinkLikeButton, SepartorLine
 
 from git_repository import GitRepository
+
 
 def _title_label_(text):
     label = QLabel()
@@ -29,10 +29,9 @@ def _make_form_row_(label, inline_cmpt, *args):
     lt.setSpacing(0)
     for cmpt in args:
         lt.addWidget(cmpt)
-    # lt.addStretch()
-    # inline_cmpt.setSizePolicy(QSizePolicy(QSizePolicy.ExpandFlag))
-    # lt.setSizeConstraint(QLayout.SetMaximumSize)
+
     parent.setLayout(lt)
+
     return parent
 
 
@@ -54,7 +53,6 @@ class LauncherPanel(QWidget):
         self._do_layout_()
 
     def _do_layout_(self):
-        from os.path import exists
         lt = QVBoxLayout()
         lt.addStretch(50)
         lt.addWidget(_title_label_('Recent'))
@@ -75,33 +73,16 @@ class LauncherPanel(QWidget):
         self.local_path.setPlaceholderText('/home/user_name/Documentation/pelicanReDoc')
         self.open_loc_button.setFixedWidth(30)
         self.open_loc_button.setFixedHeight(30)
-        # self.open_loc_button.setStyleSheet("""
-        #         QPushButton{background-color: transparent; border: 1px solid yellow; border-radius:2px; padding:5px; color:rgb(51, 122, 183)}
-        #         QPushButton:hover{background-color: rgb(51, 122, 183); border-radius:2px; padding:5px; color:white}
-        #         QPushButton:pressed{background-color: rgb(30, 80, 120); border-radius:2px; padding:5px; color:white}
-        #         """)
         new_git_layout.addWidget(_make_form_row_('Disk Location', self.local_path, self.open_loc_button))
         new_git_layout.setSizeConstraint(QLayout.SetMinimumSize)
 
         button_lt = QHBoxLayout()
         button_lt.addStretch(0)
         button_lt.addWidget(self.clone_button)
-        # self.clone_button.setStyleSheet("""
-        # QPushButton{background-color: transparent; border: 1px solid rgb(51, 122, 183); border-radius:2px; padding:5px; color:rgb(51, 122, 183)}
-        # QPushButton:hover{background-color: rgb(51, 122, 183); border-radius:2px; padding:5px; color:white}
-        # QPushButton:pressed{background-color: rgb(30, 80, 120); border-radius:2px; padding:5px; color:white}
-        # """)
-        pal = self.clone_button.palette()
-        pal.setColor(QPalette.Button, QColor(51, 122, 183))
-        self.clone_button.setAutoFillBackground(True)
-        self.clone_button.setPalette(pal)
 
         new_git_layout.addLayout(button_lt)
 
         lt.addLayout(new_git_layout)
-
-
-
 
         lt.addStretch(50)
 

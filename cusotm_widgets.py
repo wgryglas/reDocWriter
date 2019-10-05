@@ -5,7 +5,7 @@ from pyqode.qt.QtCore import  QRect
 class LinkLikeButton(QPushButton):
     def __init__(self, text):
         QPushButton.__init__(self, text)
-        self.setStyleSheet('background:transparent; color:rgb(51, 122, 183); text-align:left')
+        self.setStyleSheet('background-color:transparent; color:rgb(51, 122, 183); text-align:left; outline:0px')
 
     def _underline_(self, flag):
         font = self.font()
