@@ -2,6 +2,38 @@ from pyqode.qt.QtCore import Signal, QSize, Qt
 from pyqode.qt.QtGui import QIcon
 from pyqode.qt.QtWidgets import QWidget, QTreeView, QVBoxLayout, QPushButton, QHBoxLayout, \
     QSizePolicy, QStyle, QItemSelectionModel, QAbstractItemView
+from pyqode.qt.QtGui import QStandardItemModel, QStandardItem
+
+
+def alwaysTrue(*args):
+    return True
+
+
+def create_directory_tree_model(component, root_tree, file_filter=alwaysTrue, folder_filter=alwaysTrue):
+    model = QStandardItemModel()
+    model.setHorizontalHeaderLabels([root_tree.name])
+
+    mapping = {root_tree: model}
+
+    for parent, files, dirs in root_tree.walk():
+        if parent not in mapping:
+            continue
+
+        parent_item = mapping[parent]
+        for f in filter(file_filter, files):
+            fitem = QStandardItem(f.name)
+            fitem.setIcon(component.style().standardIcon(QStyle.SP_FileIcon))
+            fitem.setData(f)
+            parent_item.appendRow(fitem)
+
+        for d in filter(folder_filter, dirs):
+            ditem = QStandardItem(d.name)
+            ditem.setIcon(component.style().standardIcon(QStyle.SP_DirIcon))
+            ditem.setData(d)
+            mapping[d] = ditem
+            parent_item.appendRow(ditem)
+
+    return model
 
 
 class SourcesTree(QWidget):
@@ -58,9 +90,9 @@ class SourcesTree(QWidget):
         self.delete_button.setEnabled(flag)
 
     def update_model(self):
-        from uimodels import create_directory_tree_model
 
-        model = create_directory_tree_model(self._session_.get_sources_structure(),
+        model = create_directory_tree_model(self.tree,
+                                            self._session_.get_sources_structure(),
                                             file_filter=lambda f: f.name.endswith('.rst'),
                                             folder_filter=lambda d: d.name != 'figures')
         self.tree.setModel(model)
