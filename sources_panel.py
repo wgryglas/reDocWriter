@@ -113,3 +113,7 @@ class SourcesTree(QWidget):
         index = selection[0]
         item = index.model().itemFromIndex(index)
         return item.data()
+
+    def setSelectedFile(self, file_obj):
+        print file_obj.name
+        model = self.tree.model()

@@ -1,5 +1,5 @@
 import os
-
+from utils import creation_date
 
 def dir_path_without_last_sep(path):
     if path.endswith(os.sep):
@@ -30,8 +30,7 @@ class FileNode:
         return False
 
     def date(self):
-        from os.path import getctime
-        return
+        return creation_date(self.full_path)
 
 
 class DirNode(FileNode):
@@ -95,9 +94,6 @@ class DirNode(FileNode):
                 folders.extend(folder.folders)
                 yield (folder, folder.files, folder.folders)
 
-    # def query(self, row, col):
-
-
     def __str__(self):
         strings = ''
         for parent, files, folders in self.walk():
@@ -132,3 +128,18 @@ def create_file_tree(root_directory_path, file_filter=None):
         dirs = new_dirs
 
     return root
+
+
+def find_first_file(dir_node):
+    if len(dir_node.files) > 0:
+        return dir_node.files[0]
+
+    dirs = dir_node.folders
+    while len(dirs) > 0:
+        new_dirs = []
+        for d in dirs:
+            if len(d.files) > 0:
+                return d.files[0]
+            new_dirs.extend(d.folders)
+        dirs = new_dirs
+    return None

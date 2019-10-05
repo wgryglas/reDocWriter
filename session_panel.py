@@ -9,6 +9,8 @@ from core import Session
 from app_settings import ColorScheme
 from git_repository import GitRepository
 from uitreads import CustomRoutine
+from files import find_first_file
+from cusotm_widgets import ThinLine
 
 
 class SessionPanel(QWidget):
@@ -33,9 +35,11 @@ class SessionPanel(QWidget):
         self.session.sources_changed.connect(self.project_tree.update_model)
 
         self.editor = RstCodeEdit(color_scheme='qt' if self.settings.color_scheme == ColorScheme.defualt else 'darcula')  # api.CodeEdit()
-
+        #self.editor.setStyleSheet('border:0px solid black')
+        self.editor.setFrameStyle(QFrame.NoFrame)
         if self.settings.editor_font and len(self.settings.editor_font) > 0:
             self.editor.font_name = self.settings.editor_font
+
 
         self.configure_editor()
 
@@ -57,6 +61,10 @@ class SessionPanel(QWidget):
         self.layout_components()
 
         self.session.start()
+
+        anyFile = find_first_file(self.session.get_sources_structure())
+        if anyFile:
+            self.project_tree.setSelectedFile(anyFile)
 
     def setSyncScrolling(self, flag):
         if flag:
@@ -203,6 +211,9 @@ class SessionPanel(QWidget):
         container.setOrientation(Qt.Horizontal)
 
         left_widget = QSplitter()
+        pal = left_widget.palette()
+        pal.setColor(QPalette.Background, QColor(226, 226, 226))
+        left_widget.setPalette(pal)
         left_widget.setMaximumWidth(300)
         left_widget.setOrientation(Qt.Vertical)
         left_widget.addWidget(self.project_tree)
@@ -217,7 +228,10 @@ class SessionPanel(QWidget):
 
         layout = QVBoxLayout()
         layout.addWidget(self.buttons_bar)
+        layout.setSpacing(0)
+        layout.addWidget(ThinLine())
         layout.addWidget(container)
+        layout.setContentsMargins(0, 0, 0, 0)
 
         self.setLayout(layout)
 

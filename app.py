@@ -4,12 +4,12 @@ from enum import Enum
 os.environ['QT_API'] = 'PySide'
 from pyqode.qt.QtCore import *
 from pyqode.qt.QtWidgets import *
-from pyqode.qt.QtWebWidgets import *
-# use custom RstCodeEdit because could not install custom roles to work with linter
-from code_edit import RstCodeEdit
-from images_panel import ImagesPanel
-from sources_panel import SourcesTree
-from core import Session
+# from pyqode.qt.QtWebWidgets import *
+# # use custom RstCodeEdit because could not install custom roles to work with linter
+# from code_edit import RstCodeEdit
+# from images_panel import ImagesPanel
+# from sources_panel import SourcesTree
+# from core import Session
 from session_panel import SessionPanel, ColorScheme
 from launcher_panel import LauncherPanel
 from git_repository import GitRepository
@@ -26,6 +26,7 @@ class MainWindow(QWidget):
         self.setLayout(self.main_layout)
         self.launcher = LauncherPanel(settings)
         self.main_layout.addWidget(self.launcher)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
 
         self.launcher.root_path_selected.connect(self.start_session)
 
@@ -45,6 +46,7 @@ class MainWindow(QWidget):
         self.repo = GitRepository(root_path)
 
         self.session = SessionPanel(self.repo, self.app, self.settings)
+        # self.session.setContentsMargins(0, 0, 0, 0)
 
         self.main_layout.addWidget(self.session)
 
@@ -77,9 +79,6 @@ class MainWindow(QWidget):
 
 def main():
     from app_settings import AppSettings
-
-    path = '/home/wgryglas/python/pelicanDoc'
-    # path = '/home/wgryglas/Code/Python/pelicanReDoc'
 
     app = QApplication(sys.argv)
     settings = AppSettings()

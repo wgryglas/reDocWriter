@@ -1,5 +1,4 @@
 from pyqode.qt.QtWidgets import QPushButton, QFrame
-from pyqode.qt.QtCore import  QRect
 
 
 class LinkLikeButton(QPushButton):
@@ -20,9 +19,15 @@ class LinkLikeButton(QPushButton):
 
 
 class SepartorLine(QFrame):
-    def __init__(self, width):
+    def __init__(self):
         QFrame.__init__(self)
-        # self.setObjectName(QString.fromUtf8("line"))
-        self.setGeometry(QRect(320, 150, 118, 3))
         self.setFrameShape(QFrame.HLine)
         self.setFrameShadow(QFrame.Sunken)
+
+
+class ThinLine(QFrame):
+    def __init__(self):
+        QFrame.__init__(self)
+        self.setFrameShape(QFrame.HLine)
+        self.setContentsMargins(0, 0, 0, 0)
+

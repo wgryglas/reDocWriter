@@ -52,7 +52,7 @@ class ImagesPanel(QWidget):
 
     def _do_layout_(self):
         box = QVBoxLayout()
-        box.setContentsMargins(0, 0, 0, 0)
+        # box.setContentsMargins(0, 0, 0, 0)
         box.addWidget(self.buttons_bar)
         box.addWidget(self.list)
         self._layout_buttons_()

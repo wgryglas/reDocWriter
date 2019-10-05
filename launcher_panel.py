@@ -61,7 +61,7 @@ class LauncherPanel(QWidget):
             button = LinkLikeButton('{} ({})'.format(recent, git.address))
             button.clicked.connect(lambda: self.root_path_selected.emit(recent))
             lt.addWidget(button)
-        lt.addWidget(SepartorLine(200))
+        lt.addWidget(SepartorLine())
 
         lt.addSpacing(40)
 
