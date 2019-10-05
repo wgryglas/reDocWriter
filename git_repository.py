@@ -5,6 +5,10 @@ class GitRepository:
         self._repo_ = Repo(local_path)
 
     @property
+    def _default_remote_(self):
+        return self._repo_.remotes[0]
+
+    @property
     def address(self):
         return self._repo_.remotes[0].urls.next()
 
@@ -44,3 +48,8 @@ class GitRepository:
 
     def pull(self):
         pass
+
+
+    def isRemoteUpToDate(self):
+        self._default_remote_.update()
+

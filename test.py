@@ -1,12 +1,10 @@
 
 
-
-from core import GitRepository
+from git_repository import GitRepository
 from core import Session
 
-
-#repo = GitRepository("/home/wgryglas/Code/Python/pelicanReDoc")
-repo = GitRepository("/home/wgryglas/python/pelicanDoc")
+repo = GitRepository("/home/wgryglas/Code/Python/pelicanReDoc")
+# repo = GitRepository("/home/wgryglas/python/pelicanDoc")
 
 
 print repo.isModified()
@@ -14,7 +12,7 @@ print repo.isModified()
 # print repo.root_path
 
 
-session = Session(repo.root_path)
+session = Session(repo)
 
 session.set_active_file('test.rst')
 
@@ -31,6 +29,4 @@ session.set_active_file('test.rst')
 
 #print root.find_folder_by_path(session._env_.source_full_path(local_images))
 
-
-print session.active_full_path
-print session.active_local_path
+print repo.isRemoteUpToDate()

@@ -35,12 +35,9 @@ class SessionPanel(QWidget):
         self.session.sources_changed.connect(self.project_tree.update_model)
 
         self.editor = RstCodeEdit(color_scheme='qt' if self.settings.color_scheme == ColorScheme.defualt else 'darcula')  # api.CodeEdit()
-        #self.editor.setStyleSheet('border:0px solid black')
         self.editor.setFrameStyle(QFrame.NoFrame)
         if self.settings.editor_font and len(self.settings.editor_font) > 0:
             self.editor.font_name = self.settings.editor_font
-
-
         self.configure_editor()
 
         self.webview = QWebView()
@@ -62,9 +59,9 @@ class SessionPanel(QWidget):
 
         self.session.start()
 
-        anyFile = find_first_file(self.session.get_sources_structure())
-        if anyFile:
-            self.project_tree.setSelectedFile(anyFile)
+        any_file = find_first_file(self.session.get_sources_structure())
+        if any_file:
+            self.project_tree.setSelectedFile(any_file)
 
     def setSyncScrolling(self, flag):
         if flag:
@@ -78,6 +75,9 @@ class SessionPanel(QWidget):
         pnt = frame.scrollPosition()
         size = frame.contentsSize()
         self.webview.page().mainFrame().setScrollPosition(QPoint(pnt.x(), fraction * size.height()))
+
+    def check_repo_for_update(self):
+        pass
 
     def configure_editor(self):
         self.session.content_changed.connect(self.display_new_editor_content)

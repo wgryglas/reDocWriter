@@ -1,4 +1,5 @@
 from pyqode.qt.QtWidgets import QPushButton, QFrame
+from pyqode.qt.QtGui import QPalette, QColor
 
 
 class LinkLikeButton(QPushButton):
@@ -30,4 +31,7 @@ class ThinLine(QFrame):
         QFrame.__init__(self)
         self.setFrameShape(QFrame.HLine)
         self.setContentsMargins(0, 0, 0, 0)
+        pal = self.palette()
+        pal.setColor(QPalette.Foreground, QColor(150, 150, 150))
+        self.setPalette(pal)
 
