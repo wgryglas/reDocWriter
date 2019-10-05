@@ -1,6 +1,3 @@
-import os
-import sys
-from enum import Enum
 from pyqode.qt.QtCore import *
 from pyqode.qt.QtWidgets import *
 from pyqode.qt.QtWebWidgets import *
@@ -9,15 +6,13 @@ from code_edit import RstCodeEdit
 from images_panel import ImagesPanel
 from sources_panel import SourcesTree
 from core import Session
-
-class ColorScheme(Enum):
-    defualt = 1
-    darcula = 2
-
+from app_settings import ColorScheme
+from git_repository import GitRepository
+from uitreads import CustomRoutine
 
 class SessionPanel(QWidget):
 
-    def __init__(self, root_path, app, settings):
+    def __init__(self, gitRepo, app, settings):
         QWidget.__init__(self)
 
         from errors import ErrorHandler, DialogErrorView
@@ -26,7 +21,7 @@ class SessionPanel(QWidget):
 
         self.errors = ErrorHandler(DialogErrorView(self, app))
 
-        self.session = Session(root_path, self.errors)
+        self.session = Session(gitRepo, self.errors)
 
         self.text_saved = True
 
@@ -148,7 +143,34 @@ class SessionPanel(QWidget):
         repo = QComboBox()
         repo.setEditable(True)
         repo.setMinimumWidth(200)
-        repo.addItem("bitbucket@simflow-tutorials")
+
+        remote = self.session.remote_address
+        # Async repos check
+        repo.addItem(remote.split(':')[1])
+        def collect_repo_names(local_dirs):
+            collection = []
+            print local_dirs
+            for recent in local_dirs:
+                r = GitRepository(recent)
+                if r.address != remote:
+                    collection.append(r.address.split(':')[1])
+            return collection
+
+        def applyNames(names):
+            print names
+            for name in names:
+                repo.addItem(name)
+
+        collect_repos = CustomRoutine(collect_repo_names)
+        collect_repos.when_finished.connect(applyNames)
+        collect_repos.start(self.settings.recent_existing)
+
+        # UI thread repos check
+        # repo.addItem(remote.split(':')[1])
+        # for recent in self.settings.recent_existing:
+        #     r = GitRepository(recent)
+        #     if r.address != remote:
+        #         repo.addItem(r.address.split(':')[1])
 
         update = QPushButton("Update")
         update.clicked.connect(lambda: self.errors.ask_yes_no("Do you?"))

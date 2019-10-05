@@ -15,7 +15,6 @@ def reordered(seq, indices):
     return [seq[i] for i in indices]
 
 
-
 def creation_date(path_to_file):
     """
     Try to get the date that a file was created, falling back to when it was
@@ -32,3 +31,4 @@ def creation_date(path_to_file):
             # We're probably on Linux. No easy way to get creation dates here,
             # so we'll settle for when its content was last modified.
             return stat.st_mtime
+

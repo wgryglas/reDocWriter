@@ -67,3 +67,12 @@ class DeleteFiles(UIThread):
         import os
         for path in args[0]:
             os.remove(path)
+
+
+class CustomRoutine(UIThread):
+    def __init__(self, routine):
+        UIThread.__init__(self, 'CopyFiles')
+        self.routine = routine
+
+    def _command_(self, *args):
+        self.routine(*args)

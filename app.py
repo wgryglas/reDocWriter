@@ -11,32 +11,38 @@ from images_panel import ImagesPanel
 from sources_panel import SourcesTree
 from core import Session
 from session_panel import SessionPanel, ColorScheme
-
-
-class AppSettings:
-    def __init__(self):
-        self.sort_images = 'date' #name
-        self.relative_paths = True
-        self.figure_width = '400 px'
-        self.editor_font = ''
-        self.color_scheme = ColorScheme.defualt
-        self.sync_scrolloing = True
-
+from launcher_panel import LauncherPanel
+from git_repository import GitRepository
 
 class MainWindow(QWidget):
     def __init__(self, app, settings, *args):
         QWidget.__init__(self, *args)
         self.session = None
+        self.repo = None
         self.app = app
         self.settings = settings
         self.main_layout = QHBoxLayout()
         self.setLayout(self.main_layout)
+        self.launcher = LauncherPanel(settings)
+        self.main_layout.addWidget(self.launcher)
+
+        self.launcher.root_path_selected.connect(self.start_session)
 
     def start_session(self, root_path):
+
+        self.launcher.hide()
+
         if self.session:
             self.session.setParent(None)
+            del self.session
 
-        self.session = SessionPanel(root_path, self.app, self.settings)
+        if self.repo:
+            del self.repo
+
+        self.repo = GitRepository(root_path)
+
+        self.session = SessionPanel(self.repo, self.app, self.settings)
+
         self.main_layout.addWidget(self.session)
 
         if not self.isVisible():
@@ -44,13 +50,16 @@ class MainWindow(QWidget):
 
 
 def main():
+    from app_settings import AppSettings
+
     path = '/home/wgryglas/python/pelicanDoc'
     # path = '/home/wgryglas/Code/Python/pelicanReDoc'
 
     app = QApplication(sys.argv)
     settings = AppSettings()
     w = MainWindow(app, settings)
-    w.start_session(path)
+    w.showMaximized()
+    # w.start_session(path)
     sys.exit(app.exec_())
 
 ####################################################################

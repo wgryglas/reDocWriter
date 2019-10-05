@@ -1,4 +1,3 @@
-from git import Repo
 import os, subprocess
 from errors import ErrorHandler
 from files import *
@@ -72,48 +71,6 @@ class BaseWebsiteBuildEnvironment:
             self.server_process.kill()
 
 
-class GitRepository:
-    def __init__(self, local_path):
-        self._repo_ = Repo(local_path)
-
-    @property
-    def root_path(self):
-        return self._repo_.working_tree_dir
-
-    def isValid(self):
-        return not self._repo_.bare
-
-    def isModified(self):
-        return self._repo_.is_dirty()
-
-    def getModifiedFiles(self):
-        return self._repo_.untracked_files
-
-    def revertLocalChanges(self):
-        pass
-
-    def updateFromRemote(self):
-        pass
-
-    def create_commit(self, message):
-        pass
-        # self.gitRepo.
-
-    def stage_all_modified(self):
-        pass
-
-    def stage_file(self, repository_file_path):
-        pass
-
-    def push(self, origin_name=None):
-        # origin = self._repo_.head if not origin_name else self._repo_.heads[origin_name]
-        # origin.push()
-        pass
-
-    def pull(self):
-        pass
-
-
 class Session(QObject):
     html_output_changed = Signal()
     html_content_changed = Signal()
@@ -124,18 +81,18 @@ class Session(QObject):
 
     # active_file_changed = Signal()
 
-    def __init__(self, project_root, errors=ErrorHandler(), **kwargs):
+    def __init__(self, git_repo, errors=ErrorHandler(), **kwargs):
         QObject.__init__(self)
 
         #self._settings_ = settins
 
-        self._root_ = project_root
+        self._root_ = git_repo.root_path
 
-        self._env_ = BaseWebsiteBuildEnvironment(project_root) if 'config' not in kwargs else kwargs['config']
+        self._env_ = BaseWebsiteBuildEnvironment(git_repo.root_path) if 'config' not in kwargs else kwargs['config']
 
         self._errors_ = errors
 
-        self._repo_ = GitRepository(project_root)
+        self._repo_ = git_repo
         if not self._repo_.isValid():
             errors.show("Provided path is not a valid git repository")
             raise Exception("Wrong Path to Git Repository")
@@ -157,6 +114,10 @@ class Session(QObject):
     @property
     def active_full_path(self):
         return self._env_.source_full_path(self._active_file_)
+
+    @property
+    def remote_address(self):
+        return self._repo_.address
 
     @property
     def is_file_set(self):
