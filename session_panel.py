@@ -70,7 +70,10 @@ class SessionPanel(QWidget):
             self.editor.verticalScrollBar().valueChanged.disconnect(self._sync_webview_scroll_)
 
     def _sync_webview_scroll_(self, value):
-        fraction = float(value) / self.editor.verticalScrollBar().maximum()
+        range = self.editor.verticalScrollBar().maximum()
+        if range == 0:
+            return
+        fraction = float(value) / range
         frame = self.webview.page().mainFrame()
         pnt = frame.scrollPosition()
         size = frame.contentsSize()
