@@ -45,8 +45,8 @@ class MainWindow(QWidget):
 
         self.errors = ErrorHandler(DialogErrorView(self, app))
 
-        # self.session = Session('/home/wgryglas/python/pelicanDoc', self.errors)
-        self.session = Session('/home/wgryglas/Code/Python/pelicanReDoc', self.errors)
+        self.session = Session('/home/wgryglas/python/pelicanDoc', self.errors)
+        # self.session = Session('/home/wgryglas/Code/Python/pelicanReDoc', self.errors)
 
         self.buttons_bar = QWidget()
 

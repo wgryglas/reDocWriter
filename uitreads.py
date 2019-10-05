@@ -56,3 +56,14 @@ class CopyFiles(UIThread):
 
         for path in src:
             copyfile(path, dest_folder+os.sep+os.path.basename(path))
+
+
+class DeleteFiles(UIThread):
+    def __init__(self):
+        UIThread.__init__(self, 'CopyFiles')
+
+    def _command_(self, *args):
+        assert len(args) == 1
+        import os
+        for path in args[0]:
+            os.remove(path)
