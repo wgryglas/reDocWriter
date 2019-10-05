@@ -142,8 +142,13 @@ class ImagesPanel(QWidget):
         copy_op.when_finished.connect(lambda _: self.show_source_images(self._session_.active_local_path))
         copy_op.start(folder.full_path, names)
 
+    def _remove_from_list_(self, file_obj):
+        index = self.visible_files.index(file_obj)
+        self.list.takeItem(index)
+
     def _delete_selection_(self):
         if self.isAnySelected:
             delete_op = DeleteFiles()
-            delete_op.when_finished.connect(self._revalidate_)
+            to_remove = self.selected_file
+            delete_op.when_finished.connect(lambda: self._remove_from_list_(to_remove))
             delete_op.start([self.selected_file.full_path])
