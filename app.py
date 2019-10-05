@@ -31,6 +31,7 @@ class Settings:
         self.figure_width = '400 px'
         self.editor_font = ''
         self.color_scheme = ColorScheme.defualt
+        self.sync_scrolloing = True
 
 
 class MainWindow(QWidget):
@@ -57,9 +58,11 @@ class MainWindow(QWidget):
         if self.settings.editor_font and len(self.settings.editor_font) > 0:
             self.editor.font_name = self.settings.editor_font
 
-        # self.codeinput.setFontPointSize(12)
-
         self.webview = QWebView()
+
+
+
+        # self.codeinput.setFontPointSize(12)
 
         self.images_gallery = ImagesPanel(self.session, self.settings)
 
@@ -96,25 +99,23 @@ class MainWindow(QWidget):
         self.session.start()
 
 
+    def setSyncScrolling(self, flag):
+        if flag:
+            self.editor.verticalScrollBar().valueChanged.connect(self._sync_webview_scrole_)
+        else:
+            self.editor.verticalScrollBar().valueChanged.disconnect(self._sync_webview_scrole_)
+
+    def _sync_webview_scrole_(self, value):
+        fraction = float(value) / self.editor.verticalScrollBar().maximum()
+        frame = self.webview.page().mainFrame()
+        pnt = frame.scrollPosition()
+        size = frame.contentsSize()
+        self.webview.page().mainFrame().setScrollPosition(QPoint(pnt.x(), fraction * size.height()))
+
     def configure_editor(self):
         self.session.content_changed.connect(self.display_new_editor_content)
-
         self.editor.textChanged.connect(self.mark_unsaved)
 
-        # joining editor with webview
-        # self.webview.set_editor(self.editor)
-
-        # self.editor.modes.get()
-
-        # self.editor.backend.start('server.py')
-
-        # append some modes and panels
-        # self.editor.modes.append(modes.CodeCompletionMode())
-        # self.editor.modes.append(modes.PygmentsSyntaxHighlighter(self.editor.document()))
-        # self.editor.modes.append(modes.CaretLineHighlighterMode())
-        # self.editor.panels.append(panels.SearchAndReplacePanel(), api.Panel.Position.BOTTOM)
-
-        # self.editor.modes.get(PygmentsSyntaxHighlighter).pygments_style = 'monokai'
 
     def insert_directive_in_current_position(self, text):
         # assert dictionary is placed in new line
@@ -170,6 +171,11 @@ class MainWindow(QWidget):
         redo = QPushButton("Redo")
         redo.clicked.connect(lambda: self.editor.redo())
 
+        #sync_scroll = QSlideSwitch()
+        sync_scroll = QCheckBox()
+        sync_scroll.setText('Sync Scroll')
+        sync_scroll.clicked.connect(lambda: self.setSyncScrolling(sync_scroll.isChecked()))
+
         repo = QComboBox()
         repo.setEditable(True)
         repo.setMinimumWidth(200)
@@ -186,10 +192,13 @@ class MainWindow(QWidget):
         layout.addWidget(undo)
         layout.addWidget(redo)
         layout.addStretch(20)
+        layout.addWidget(sync_scroll)
+        layout.addStretch(20)
         layout.addWidget(repo)
         layout.addSpacing(20)
         layout.addWidget(update)
         layout.addWidget(commit)
+
 
         self.buttons_bar.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed))
         # self.buttons_bar.setSizePolicy()
