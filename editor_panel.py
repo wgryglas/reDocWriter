@@ -39,6 +39,17 @@ class EditorPanel(QWidget):
         self.redo.setToolTip("Redo")
         self.redo.clicked.connect(lambda: self.editor.redo())
 
+    def _build_buttons_layout_(self):
+        lt = QHBoxLayout()
+        return lt
+
+    def _do_layout_(self):
+        lt = QVBoxLayout()
+        lt.setContentsMargins(0, 0, 0, 0)
+        lt.addLayout(self._build_buttons_layout_())
+        lt.addWidget(self.editor)
+        self.setLayout(lt)
+
     def verticalScrollBar(self):
         return self.editor.verticalScrollBar()
 
@@ -92,13 +103,4 @@ class EditorPanel(QWidget):
             self.text_modified = False
             self.content_changed.emit()
 
-    def _build_buttons_layout_(self):
-        lt = QHBoxLayout()
-        return lt
-
-    def _do_layout_(self):
-        lt = QVBoxLayout()
-        lt.addLayout(self._build_buttons_layout_())
-        lt.addWidget(self.editor)
-        self.setLayout(lt)
 
