@@ -1,8 +1,6 @@
 from pyqode.qt.QtCore import *
 from pyqode.qt.QtWidgets import *
 from pyqode.qt.QtWebWidgets import *
-# use custom RstCodeEdit because could not install custom roles to work with linter
-from code_edit import RstCodeEdit
 from images_panel import ImagesPanel
 from sources_panel import SourcesTree
 from core import Session
@@ -11,6 +9,7 @@ from git_repository import GitRepository
 from uitreads import CustomRoutine
 from files import find_first_file
 from cusotm_widgets import ThinLine
+from editor_panel import EditorPanel
 
 
 class SessionPanel(QWidget):
@@ -34,18 +33,13 @@ class SessionPanel(QWidget):
         self.project_tree.source_selection_changed.connect(self._on_file_selection_)
         self.session.sources_changed.connect(self.project_tree.update_model)
 
-        self.editor = RstCodeEdit(color_scheme='qt' if self.settings.color_scheme == ColorScheme.defualt else 'darcula')  # api.CodeEdit()
-        self.editor.setFrameStyle(QFrame.NoFrame)
-        if self.settings.editor_font and len(self.settings.editor_font) > 0:
-            self.editor.font_name = self.settings.editor_font
-        self.configure_editor()
+        self.editor = EditorPanel(self.settings)
+        self.session.content_changed.connect(self.editor.displayText)
+        self.editor.content_changed.connect(lambda: self.session.set_active_file_content(self.editor.plainText))
 
         self.webview = QWebView()
 
         self.images_gallery = ImagesPanel(self.session, self.settings)
-
-        self.render_timer = QTimer()
-        self.render_timer.timeout.connect(self.save_text)
 
         self.session.html_output_changed.connect(lambda: self.display_local_html_file(self.session.active_file_output))
 
@@ -70,51 +64,23 @@ class SessionPanel(QWidget):
             self.editor.verticalScrollBar().valueChanged.disconnect(self._sync_webview_scroll_)
 
     def _sync_webview_scroll_(self, value):
-        range = self.editor.verticalScrollBar().maximum()
-        if range == 0:
+        scrollRange = self.editor.verticalScrollBar().maximum()
+        if scrollRange == 0:
             return
-        fraction = float(value) / range
+        fraction = float(value) / scrollRange
         frame = self.webview.page().mainFrame()
         pnt = frame.scrollPosition()
         size = frame.contentsSize()
         self.webview.page().mainFrame().setScrollPosition(QPoint(pnt.x(), fraction * size.height()))
 
-    def check_repo_for_update(self):
-        pass
-
-    def configure_editor(self):
-        self.session.content_changed.connect(self.display_new_editor_content)
-        self.editor.textChanged.connect(self.mark_unsaved)
-
-    def insert_directive_in_current_position(self, text):
-        # assert dictionary is placed in new line
-        if self.editor.textCursor().columnNumber() > 0:
-            text = '\n' + text
-        self.editor.insertPlainText(text)
-
     def insert_image_in_current_position(self, path):
         from editr_actions import format_image
-        self.insert_directive_in_current_position(format_image(path, width=self.settings.figure_width))
-
-    def mark_unsaved(self):
-        self.text_saved = False
-        if not self.render_timer.isActive():
-            self.render_timer.start(1000)
-
-    def save_text(self):
-        if not self.text_saved:
-            self.text_saved = True
-            self.session.set_active_file_content(self.editor.toPlainText())
+        self.editor.insert_directive_in_current_position(format_image(path, width=self.settings.figure_width))
 
     def _on_file_selection_(self, selected_file):
         if selected_file and not selected_file.is_dir:
             self.session.set_active_file(selected_file.local_path)
             self.images_gallery.show_source_images(selected_file.local_path)
-
-    def display_new_editor_content(self, content):
-        self.editor.clear()
-        self.editor.setPlainText(content)
-        self.text_saved = True
 
     def display_local_html_file(self, file_path_string):
         import os
@@ -133,16 +99,6 @@ class SessionPanel(QWidget):
     def layout_toolbar(self):
         # save = QPushButton("Save")
         # save.clicked.connect(lambda: self.errors.show("Hi, nice to meet you"))
-
-        undo = QPushButton()
-        undo.setIcon(self.style().standardIcon(QStyle.SP_ArrowBack))
-        undo.setToolTip("Undo")
-        undo.clicked.connect(lambda: self.editor.undo())
-
-        redo = QPushButton()
-        redo.setIcon(self.style().standardIcon(QStyle.SP_ArrowForward))
-        redo.setToolTip("Redo")
-        redo.clicked.connect(lambda: self.editor.redo())
 
         # sync_scroll = QSlideSwitch()
         sync_scroll = QCheckBox()
@@ -191,13 +147,9 @@ class SessionPanel(QWidget):
         commit = QPushButton("Commit")
 
         layout = QHBoxLayout()
-        # layout.addWidget(save)
-        # layout.addSpacing(20)
-        layout.addWidget(undo)
-        layout.addWidget(redo)
-        layout.addStretch(20)
+        layout.addStretch(0)
         layout.addWidget(sync_scroll)
-        layout.addStretch(20)
+        layout.addStretch(0)
         layout.addWidget(repo)
         layout.addSpacing(20)
         layout.addWidget(update)

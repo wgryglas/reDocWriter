@@ -1,7 +1,7 @@
 from pyqode.qt.QtCore import Signal, QSize, Qt
-from pyqode.qt.QtGui import QIcon
+from pyqode.qt.QtGui import QIcon, QColor, QPalette
 from pyqode.qt.QtWidgets import QWidget, QListWidget, QListWidgetItem, QVBoxLayout, QPushButton, QHBoxLayout, \
-    QSizePolicy, QStyle, QFileDialog
+    QSizePolicy, QStyle, QFileDialog, QFrame
 from uitreads import LoadPixmaps, DeleteFiles
 
 
@@ -19,7 +19,7 @@ class ImagesPanel(QWidget):
         self.list = QListWidget()
         self.list.itemSelectionChanged.connect(self._handle_selection_)
 
-        self.buttons_bar = QWidget()
+        self.buttons_bar = QFrame()
 
         self.insert_button = QPushButton()
         self.insert_button.setIcon(self.style().standardIcon(QStyle.SP_ArrowDown))
@@ -42,7 +42,7 @@ class ImagesPanel(QWidget):
 
     def _layout_buttons_(self):
         box = QHBoxLayout()
-        box.setContentsMargins(0, 5, 5, 0)
+        box.setContentsMargins(5, 5, 5, 5)
         box.addWidget(self.add_files_button)
         box.addWidget(self.delete_button)
         box.addStretch(20)
@@ -50,8 +50,24 @@ class ImagesPanel(QWidget):
         self.buttons_bar.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed))
         self.buttons_bar.setLayout(box)
 
+        # self.buttons_bar.setObjectName('buttons_bar')
+        self.buttons_bar.setObjectName('buttons')
+        self.buttons_bar.setStyleSheet('QFrame#buttons{background:transparent; '
+                                       'border-top:1px solid gray; '
+                                       'border-left:1px solid gray; border-right:1px solid gray;'
+                                       'border-top-left-radius:3px; border-top-right-radius:3px}')
+
+        # pal = self.buttons_bar.palette()
+        # pal.setColor(QPalette.Background, QColor('darkgray'))
+        # pal.setColor(QPalette.Background, QColor('white'))
+        # pal.setColor(QPalette.Foreground, QColor('darkgray'))
+        # self.buttons_bar.setPalette(pal)
+        # self.buttons_bar.setAutoFillBackground(True)
+        # self.buttons_bar.setFrameShape(QFrame.Box)
+
     def _do_layout_(self):
         box = QVBoxLayout()
+        box.setSpacing(0)
         # box.setContentsMargins(0, 0, 0, 0)
         box.addWidget(self.buttons_bar)
         box.addWidget(self.list)

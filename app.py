@@ -56,6 +56,7 @@ class MainWindow(QWidget):
     def set_color_scheme(self, scheme):
         if scheme == ColorScheme.defualt:
             self.setPalette(QPalette())
+            # self.setStyleSheet('QPushButton{border:none; margin:4px}')
         else:
             self.setStyleSheet("MainWindow{background-color:rgb(37, 37, 37)}")
             # self.setStyleSheet("QPushButton{background-color:rgb(37, 37, 37); border-radius:3px; padding:5px}")

@@ -1,6 +1,6 @@
 from pyqode.qt.QtCore import Signal, QSize, Qt
 from pyqode.qt.QtGui import QIcon
-from pyqode.qt.QtWidgets import QWidget, QTreeView, QVBoxLayout, QPushButton, QHBoxLayout, \
+from pyqode.qt.QtWidgets import QWidget, QFrame, QTreeView, QVBoxLayout, QPushButton, QHBoxLayout, \
     QSizePolicy, QStyle, QItemSelectionModel, QAbstractItemView
 from pyqode.qt.QtGui import QStandardItemModel, QStandardItem
 
@@ -48,7 +48,7 @@ class SourcesTree(QWidget):
         session.sources_changed.connect(self.update_model)
 
         self.tree = QTreeView()
-        self.buttons_bar = QWidget()
+        self.buttons_bar = QFrame()
         self.add_folder = QPushButton()
         self.add_folder.setIcon(self.style().standardIcon(QStyle.SP_FileDialogNewFolder))
         self.add_folder.setToolTip('Add folder')
@@ -69,8 +69,10 @@ class SourcesTree(QWidget):
     def _do_layout_(self):
         self._layout_buttons_()
         box = QVBoxLayout()
+        box.setSpacing(0)
         box.addWidget(self.buttons_bar)
         box.addWidget(self.tree)
+
         self.setLayout(box)
 
     def _layout_buttons_(self):
@@ -79,9 +81,13 @@ class SourcesTree(QWidget):
         box.addStretch(20)
         box.addWidget(self.add_folder)
         box.addWidget(self.add_page)
-        box.setContentsMargins(0, 5, 5, 0)
+        box.setContentsMargins(5, 5, 5, 5)
         self.buttons_bar.setLayout(box)
         self.buttons_bar.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed))
+        self.buttons_bar.setObjectName('buttons')
+        self.buttons_bar.setStyleSheet('QFrame#buttons{background:transparent; border-top:1px solid gray; '
+                                       'border-left:1px solid gray; border-right:1px solid gray; '
+                                       'border-top-left-radius:3px; border-top-right-radius:3px}')
 
     def _update_buttons_state_(self):
         flag = self.is_any_selected()

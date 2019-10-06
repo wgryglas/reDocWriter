@@ -231,5 +231,4 @@ class Session(QObject):
     def _load_active_file_content_(self):
         with open(self.active_full_path, 'r') as f:
             self._content_ = ''.join(f.readlines())
-            self._file_is_up_to_date_ = True
             self.content_changed.emit(self._content_)

@@ -15,6 +15,7 @@ class AppSettings:
         self.color_scheme = ColorScheme.defualt
         self.sync_scrolling = True
         self.recent = ['/home/wgryglas/python/pelicanDoc', '/home/wgryglas/Code/Python/pelicanReDoc']
+        self.content_refresh_time = 1000
 
     @property
     def recent_existing(self):
