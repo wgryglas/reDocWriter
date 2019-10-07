@@ -99,6 +99,9 @@ class Session(QObject):
     def start(self):
         self.sources_changed.emit()
 
+    def projectFilesChanged(self):
+        self.sources_changed.emit()
+
     @property
     def active_local_path(self):
         return self._active_file_

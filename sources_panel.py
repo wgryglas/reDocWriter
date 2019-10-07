@@ -1,8 +1,9 @@
 from pyqode.qt.QtCore import Signal, QSize, Qt
 from pyqode.qt.QtGui import QIcon
 from pyqode.qt.QtWidgets import QWidget, QFrame, QTreeView, QVBoxLayout, QPushButton, QHBoxLayout, \
-    QSizePolicy, QStyle, QItemSelectionModel, QAbstractItemView
+    QSizePolicy, QStyle, QItemSelectionModel, QAbstractItemView, QDialog, QToolButton, QGraphicsDropShadowEffect
 from pyqode.qt.QtGui import QStandardItemModel, QStandardItem
+from uitreads import DuplicateFile
 
 
 def alwaysTrue(*args):
@@ -36,14 +37,64 @@ def create_directory_tree_model(component, root_tree, file_filter=alwaysTrue, fo
     return model
 
 
+def _create_shadow_():
+    shadow = QGraphicsDropShadowEffect()
+    shadow.setBlurRadius(10)
+    shadow.setXOffset(0)
+    shadow.setYOffset(3)
+    return shadow
+
+
+class AddNewTemplatePanel(QDialog):
+
+    button_selected = Signal(str)
+
+    def __init__(self):
+        QDialog.__init__(self)
+        self.setStyleSheet('''
+        QToolButton { 
+            border: 1px solid rgb(51, 122, 183); 
+            border-radius:5px; 
+            background:rgb(222, 222, 222); 
+            outline:0px;
+            padding:10px;
+            width: 80px;
+        } 
+        QToolButton:hover { background:transparent; background:rgb(51, 122, 183); color:white}
+        QToolButton:pressed { background:rgb(41, 100, 153); color:white }
+        ''')
+
+        self.setWindowTitle('Choose Template')
+
+        self.boxLt = QHBoxLayout()
+        self.boxLt.setSpacing(20)
+        self.boxLt.setContentsMargins(50, 50, 50, 50)
+        self.setLayout(self.boxLt)
+        self.populateButtons(['Tutorial', 'Article'])
+
+    def populateButtons(self, names):
+        for name in names:
+            b = QToolButton()
+            b.setText(name)
+            b.setGraphicsEffect(_create_shadow_())
+            b.setIcon(self.style().standardIcon(QStyle.SP_FileIcon))
+            b.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+            b.clicked.connect(self.processClick)
+            self.boxLt.addWidget(b)
+
+    def processClick(self):
+        self.button_selected.emit(self.sender().text())
+
+
 class SourcesTree(QWidget):
 
     source_selection_changed = Signal(object)
 
-    def __init__(self, session, errors):
+    def __init__(self, session, system, errors):
         QWidget.__init__(self)
         self._session_ = session
         self._errors_ = errors
+        self.system = system
 
         session.sources_changed.connect(self.update_model)
 
@@ -120,6 +171,45 @@ class SourcesTree(QWidget):
         item = index.model().itemFromIndex(index)
         return item.data()
 
-    def setSelectedFile(self, file_obj):
-        print file_obj.name
-        model = self.tree.model()
+    def showNewPageWindow(self):
+        from os.path import basename
+        dialog = AddNewTemplatePanel()
+        names = ['Empty']
+        for name in map(basename, self.system.templateFiles):
+            names.append(name)
+        dialog.populateButtons(names)
+
+    # def createTemplateCopy(self, templateName):
+    #     from os.path import basename, dirname
+    #
+    #     if templateName == 'Empty':
+    #         return
+    #
+    #     for path in self.system.templateFiles:
+    #         name = basename(path)
+    #         if name == templateName:
+    #             op = DuplicateFile()
+    #             dir_path = dirname(self._session_.active_full_path)
+    #
+    #             op.when_finished.connect(lambda: self._session_.)
+    #
+    #             op.start(dir_path, [path])
+    #
+    #             return
+
+
+
+def displ(s):
+    print s
+
+if __name__ == '__main__':
+    import sys
+    from pyqode.qt.QtWidgets import QApplication
+    app = QApplication(sys.argv)
+
+    p = AddNewTemplatePanel()
+    p.show()
+    p.button_selected.connect(displ)
+
+
+    sys.exit(app.exec_())

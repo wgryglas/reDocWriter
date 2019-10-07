@@ -51,11 +51,20 @@ class CopyFiles(UIThread):
         dest_folder = args[0]
         src = args[1]
 
-        print dest_folder
-        print src
-
         for path in src:
             copyfile(path, dest_folder+os.sep+os.path.basename(path))
+
+
+class DuplicateFile(UIThread):
+    def __init__(self):
+        UIThread.__init__(self, 'DuplicateFile')
+
+    def _command_(self, *args):
+        assert len(args) == 2
+        from shutil import copyfile
+        dest = args[0]
+        src = args[1]
+        copyfile(src, dest)
 
 
 class DeleteFiles(UIThread):

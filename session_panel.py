@@ -4,7 +4,6 @@ from pyqode.qt.QtWebWidgets import *
 from images_panel import ImagesPanel
 from sources_panel import SourcesTree
 from core import Session
-from app_settings import ColorScheme
 from git_repository import GitRepository
 from uitreads import CustomRoutine
 from files import find_first_file
