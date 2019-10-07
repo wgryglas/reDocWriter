@@ -33,14 +33,15 @@ def creation_date(path_to_file):
             return stat.st_mtime
 
 
-class PropertiesDelegator:
+class PropertiesGetDelegator(object):
     def __init__(self, propHolder):
         self.propHolder = propHolder
 
-    def __getattr__(self, item):
-        return self.propHolder[item]
-
-
+    def __getattribute__(self, item):
+        try:
+            return getattr(self.propHolder, item)
+        except:
+            return super(PropertiesGetDelegator, self).__getattribute__(item)
 
 
 class Proxy(object):

@@ -30,9 +30,16 @@ from core import Session
 
 # print repo.isRemoteUpToDate()
 
-from app_settings import AppSettings
-settings = AppSettings()
+# from app_settings import AppSettings
+# settings = AppSettings()
+# # settings.set('figure_width', '500 px')
+# # settings.saveToFile('/home/wgryglas/test_settings.xml')
+# # settings.loadFromFile('/home/wgryglas/test_settings.xml')
+#
+# print settings.recent, settings.figure_width, settings.sort_images, settings.editor_font
 
-# settings.saveToFile('/home/wgryglas/test_settings.xml')
-settings.loadFromFile('/home/wgryglas/test_settings.xml')
-print settings.recent, settings.figure_width, settings.sort_images, settings.editor_font
+from app_settings import SystemSettings
+
+sys = SystemSettings()
+
+print sys.userSettingsDir, sys.settingsFilePath, sys.some_prop

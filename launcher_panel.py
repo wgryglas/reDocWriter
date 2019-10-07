@@ -1,7 +1,7 @@
 from pyqode.qt.QtCore import *
 from pyqode.qt.QtWidgets import *
 from cusotm_widgets import LinkLikeButton, SepartorLine
-
+from app_settings import SystemSettings
 from git_repository import GitRepository
 
 
@@ -94,13 +94,92 @@ class LauncherPanel(QWidget):
         self.setLayout(outer)
 
 
-class StartPanel(QWidget):
-    pass
+class WelcomePanel(QWidget):
+
+    on_ready = Signal()
+
+    def __init__(self, system):
+        QWidget.__init__(self)
+
+        self.system = system
+
+        lt = QVBoxLayout()
+
+        title1 = QLabel('Welcome')
+        title1.setAlignment(Qt.AlignCenter)
+        f = title1.font()
+        f.setPointSize(18)
+        title1.setFont(f)
+        title2 = QLabel('Do you want to create desktop shortcut?')
+        title2.setAlignment(Qt.AlignCenter)
+
+        yes = QPushButton('Yes')
+        yes.clicked.connect(self.createShortcut)
+
+        no = QPushButton('No')
+        no.clicked.connect(self.createOnlyUserDir)
 
 
-class InitializePanel(QWidget):
-    pass
+        btLt = QHBoxLayout()
+        btLt.addStretch(0)
+        btLt.addWidget(yes)
+        btLt.addWidget(no)
+        btLt.addStretch(0)
 
+        lt.addStretch(0)
+        lt.addWidget(title1)
+        lt.addSpacing(10)
+        lt.addWidget(title2)
+        lt.addLayout(btLt)
+        lt.addStretch(0)
+
+        self.setLayout(lt)
+
+    def createShortcut(self):
+        self.system.createShortcut()
+        self.system.createUserDir()
+        self.on_ready.emit()
+
+    def createOnlyUserDir(self):
+        self.system.createUserDir()
+        self.on_ready.emit()
+
+
+class InitialPanel(QWidget):
+
+    on_launcher_show = Signal(object)
+
+    def __init__(self, system):
+        QWidget.__init__(self)
+        self.system = system
+        self.welcome = WelcomePanel(self.system)
+        if system.isInitialized:
+            self.configure_regular()
+            self.on_launcher_show.emit()
+        else:
+            self.configure_welcome()
+
+    def configure_welcome(self):
+        lt = QHBoxLayout()
+        lt.addWidget(self.welcome)
+        self.setLayout(lt)
+        self.welcome.on_ready.connect(self.showLauncher)
+
+    def createLauncher(self):
+        settings = self.system.loadSettings()
+        launcher = LauncherPanel(settings)
+        return launcher
+
+    def showLauncher(self):
+        l = self.createLauncher()
+        self.layout().addWidget(l)
+        self.welcome.hide()
+        self.on_launcher_show.emit()
+
+    def configure_regular(self):
+        lt = QHBoxLayout()
+        lt.addWidget(self.launcher)
+        self.setLayout(lt)
 
 
 if __name__ == "__main__":
@@ -108,6 +187,7 @@ if __name__ == "__main__":
     from app_settings import AppSettings
 
     app = QApplication(sys.argv)
-    panel = LauncherPanel(AppSettings())
-    panel.show()
+    system = SystemSettings()
+    panel = InitialPanel(system)
+    panel.showMaximized()
     sys.exit(app.exec_())

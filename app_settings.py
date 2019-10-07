@@ -1,7 +1,7 @@
 from enum import Enum
 import sys
-from utils import Proxy, PropertiesDelegator
 from errors import ConsoleLogger
+from utils import PropertiesGetDelegator
 
 class ColorScheme(Enum):
     defualt = 1
@@ -102,7 +102,7 @@ class StringList(SettingsProperty):
             propNode.appendChild(outerNode)
 
 
-class PropertiesBuilder:
+class PropertiesHandler:
     propertyTag = 'property'
 
     def __init__(self, nodeName, logger=ConsoleLogger()):
@@ -110,11 +110,11 @@ class PropertiesBuilder:
         self.nodeName = nodeName
         self.logger = logger
 
+    def __getattr__(self, item):
+        return self.props[item].value
+
     def add(self, prop):
         self.props[prop.name] = prop
-
-    def __getitem__(self, item):
-        return self.props[item].value
 
     def str(self, name, value):
         self.add(StringProperty(name, value))
@@ -161,17 +161,10 @@ class PropertiesBuilder:
         miniXmlDom.appendChild(group)
 
 
-class AppSettings(PropertiesDelegator):
+class AppSettings(PropertiesGetDelegator):
 
     def __init__(self):
-        # self.sort_images = 'date' #name
-        # self.relative_paths = True
-        # self.figure_width = '400 px'
-        # self.editor_font = ''
-        # self.color_scheme = ColorScheme.defualt
-        # self.sync_scrolling = True
-        # self.content_refresh_time = 1000
-        self.properties = PropertiesBuilder('settings')
+        self.properties = PropertiesHandler('settings')
         self.properties.str('sort_images', 'date')
         self.properties.bool('relative_paths', True)
         self.properties.str('figure_width', '400 px')
@@ -181,10 +174,13 @@ class AppSettings(PropertiesDelegator):
         self.properties.int('content_refresh_time', 1000)
         self.properties.strList('recent', ['/home/wgryglas/python/pelicanDoc', '/home/wgryglas/Code/Python/pelicanReDoc'])
 
-        PropertiesDelegator.__init__(self, self.properties)
+        PropertiesGetDelegator.__init__(self, self.properties)
 
-    # def __new__(cls, *args, **kwargs):
+    def get(self, name):
+        return self.properties.props[name].value
 
+    def set(self, name, value):
+        self.properties.props[name].value = value
 
     @property
     def recent_existing(self):
@@ -204,9 +200,8 @@ class AppSettings(PropertiesDelegator):
             dom.writexml(xmlFile, addindent='\t', newl='\n')
 
 
-class SystemSettings(Proxy):
-
-    def __init__(self, **kwargs):
+class SystemSettings(PropertiesGetDelegator):
+    def __init__(self):
         platformName = sys.platform
         if platformName.startswith('linux'):
             os = Linux()
@@ -215,31 +210,39 @@ class SystemSettings(Proxy):
         else:
             raise Exception('Your OS is not supported')
 
-        Proxy.__init__(self, os)
+        # self.os = os
+        PropertiesGetDelegator.__init__(self, os)
 
+    @property
     def isInitialized(self):
         import os
-        return os.path.exists(self.settingsPath)
+        return os.path.exists(self.userSettingsDir)
 
     def loadSettings(self):
         settings = AppSettings()
-        if self.isInitialized():
-            settings.loadFromFile(self.settingsPath)
+        if self.isInitialized:
+            settings.loadFromFile(self.os.settingsFilePath)
         return settings
 
     def saveSettings(self, settings):
-        settings.saveToFile(self.settingsPath)
+        settings.saveToFile(self.os.settingsFilePath)
+
+    def createShortcut(self):
+        pass
+
+    def createUserDir(self):
+        pass
 
 
 class Linux:
     def __init__(self):
         from os.path import expanduser
         home = expanduser("~")
-        self.userSetupDir = '{}/.reWriter'.format(home)
+        self.userSettingsDir = '{}/.reWriter'.format(home)
 
     @property
-    def settingsPath(self):
-        return '{}/settings.xml'.format(self.userSetupDir)
+    def settingsFilePath(self):
+        return '{}/settings.xml'.format(self.userSettingsDir)
 
 
 class Windows:
