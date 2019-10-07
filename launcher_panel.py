@@ -94,6 +94,15 @@ class LauncherPanel(QWidget):
         self.setLayout(outer)
 
 
+class StartPanel(QWidget):
+    pass
+
+
+class InitializePanel(QWidget):
+    pass
+
+
+
 if __name__ == "__main__":
     import sys
     from app_settings import AppSettings

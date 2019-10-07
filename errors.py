@@ -56,6 +56,9 @@ class DialogErrorView(ErrorViewInterface):
 
 
 class ConsoleLogger:
+    def wraning(self, text):
+        print text
+
     def error(self, text):
         print text
 
