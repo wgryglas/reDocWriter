@@ -147,39 +147,47 @@ class WelcomePanel(QWidget):
 
 class InitialPanel(QWidget):
 
-    on_launcher_show = Signal(object)
+    on_launcher_show = Signal()
+    on_root_selection = Signal(str)
+    on_settings_ready = Signal(object)
 
-    def __init__(self, system):
+    def __init__(self, system, settings):
         QWidget.__init__(self)
         self.system = system
+        self.settings = settings
         self.welcome = WelcomePanel(self.system)
         if system.isInitialized:
             self.configure_regular()
-            self.on_launcher_show.emit()
         else:
             self.configure_welcome()
+
+    def loadSettings(self):
+        self.settings.loadFromFile(self.system.settingsFilePath)
+        self.on_settings_ready.emit(self.settings)
+
+    def configure_regular(self):
+        self.loadSettings()
+        lt = QHBoxLayout()
+        self.setLayout(lt)
+        self.showLauncher()
 
     def configure_welcome(self):
         lt = QHBoxLayout()
         lt.addWidget(self.welcome)
         self.setLayout(lt)
-        self.welcome.on_ready.connect(self.showLauncher)
+        self.welcome.on_ready.connect(self.moveToLauncher)
 
-    def createLauncher(self):
-        settings = self.system.loadSettings()
-        launcher = LauncherPanel(settings)
-        return launcher
+    def moveToLauncher(self):
+        self.loadSettings()
 
     def showLauncher(self):
-        l = self.createLauncher()
-        self.layout().addWidget(l)
+        launcher = LauncherPanel(self.settings)
+        launcher.root_path_selected.connect(self.on_root_selection.emit)
+        self.layout().addWidget(launcher)
         self.welcome.hide()
         self.on_launcher_show.emit()
 
-    def configure_regular(self):
-        lt = QHBoxLayout()
-        lt.addWidget(self.launcher)
-        self.setLayout(lt)
+
 
 
 if __name__ == "__main__":

@@ -1,22 +1,15 @@
-from enum import Enum
 import sys
 from errors import ConsoleLogger
 from utils import PropertiesGetDelegator
 
-class ColorScheme(Enum):
+
+class ColorScheme:
     defualt = 1
     darcula = 2
 
     @staticmethod
     def fromString(text):
         if text == 'darcula':
-            return ColorScheme.darcula
-        else:
-            return ColorScheme.defualt
-
-    @staticmethod
-    def fromInt(idNum):
-        if idNum == 2:
             return ColorScheme.darcula
         else:
             return ColorScheme.defualt
@@ -83,7 +76,7 @@ class SchemeProperty(SettingsProperty):
         SettingsProperty.__init__(self, name, value, 'color-scheme')
 
     def loadFromNode(self, propNode):
-        self.value = ColorScheme.fromInt(int(SettingsProperty.getStr(propNode)))
+        self.value = int(SettingsProperty.getStr(propNode))
 
 
 class StringList(SettingsProperty):
@@ -148,7 +141,6 @@ class PropertiesHandler:
                 self.logger.wraning('Found {} in settings file but this property is not used by application')
 
     def save(self, miniXmlDom):
-        from xml.dom.minidom import Element, Text, Node
         group = miniXmlDom.createElement(self.nodeName)
         for propName in self.props:
             prop = self.props[propName]
@@ -189,8 +181,10 @@ class AppSettings(PropertiesGetDelegator):
 
     def loadFromFile(self, path):
         from xml.dom.minidom import parse
-        dom = parse(path)
-        self.properties.load(dom)
+        from os.path import exists
+        if exists(path):
+            dom = parse(path)
+            self.properties.load(dom)
 
     def saveToFile(self, path):
         from xml.dom.minidom import Document
@@ -221,7 +215,7 @@ class SystemSettings(PropertiesGetDelegator):
     def loadSettings(self):
         settings = AppSettings()
         if self.isInitialized:
-            settings.loadFromFile(self.os.settingsFilePath)
+            settings.loadFromFile(self.settingsFilePath)
         return settings
 
     def saveSettings(self, settings):
@@ -231,7 +225,9 @@ class SystemSettings(PropertiesGetDelegator):
         pass
 
     def createUserDir(self):
-        pass
+        from os import makedirs
+        makedirs(self.userSettingsDir)
+
 
 
 class Linux:

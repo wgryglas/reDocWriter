@@ -11,26 +11,38 @@ from pyqode.qt.QtWidgets import *
 # from sources_panel import SourcesTree
 # from core import Session
 from session_panel import SessionPanel, ColorScheme
-from launcher_panel import LauncherPanel
+from launcher_panel import InitialPanel
 from git_repository import GitRepository
+from app_settings import SystemSettings, AppSettings
 
 
 class MainWindow(QWidget):
-    def __init__(self, app, settings, *args):
+    def __init__(self, app, *args):
         QWidget.__init__(self, *args)
         self.session = None
         self.repo = None
         self.app = app
-        self.settings = settings
+        self.system = SystemSettings()
+        self.settings = AppSettings()
+
         self.main_layout = QHBoxLayout()
         self.setLayout(self.main_layout)
-        self.launcher = LauncherPanel(settings)
+
+        self.launcher = InitialPanel(self.system, self.settings)
+
         self.main_layout.addWidget(self.launcher)
+
         self.main_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.launcher.root_path_selected.connect(self.start_session)
+        self.launcher.on_settings_ready.connect(self.setSettings)
+        self.launcher.on_root_selection.connect(self.start_session)
 
-        self.set_color_scheme(self.settings.color_scheme)
+    def closeEvent(self, event):
+        self.settings.saveToFile(self.system.settingsFilePath)
+        event.accept()
+
+    def setSettings(self, setting):
+        self.settings = setting
 
     def start_session(self, root_path):
 
@@ -46,6 +58,8 @@ class MainWindow(QWidget):
         self.repo = GitRepository(root_path)
 
         self.session = SessionPanel(self.repo, self.app, self.settings)
+
+        self.set_color_scheme(self.settings.color_scheme)
         # self.session.setContentsMargins(0, 0, 0, 0)
 
         self.main_layout.addWidget(self.session)
@@ -82,8 +96,7 @@ def main():
     from app_settings import AppSettings
 
     app = QApplication(sys.argv)
-    settings = AppSettings()
-    w = MainWindow(app, settings)
+    w = MainWindow(app)
     w.showMaximized()
     # w.start_session(path)
     sys.exit(app.exec_())
