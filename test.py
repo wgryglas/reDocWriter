@@ -46,3 +46,5 @@ print session._to_local_src_path_('/home/wgryglas/python/pelicanDoc/content/test
 #
 # print sys.userSettingsDir, sys.settingsFilePath, sys.some_prop
 
+from file_templates import emptyFileTemplate
+print session.substituteTemplatText(emptyFileTemplate(), '/home/wgryglas/python/pelicanDoc/content/test.rst')

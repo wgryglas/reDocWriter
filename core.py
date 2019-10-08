@@ -251,35 +251,46 @@ class Session(QObject):
 
     def _create_figures_folder_for_(self, src_local_path):
         import os
+
         dir_path = self._env_.get_figures_folder_full_path_for(src_local_path)
-        os.makedirs(dir_path)
+
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
 
     def addEmptyToSrc(self, dest):
         from os.path import dirname, exists, basename
         from os import makedirs
+        from file_templates import emptyFileTemplate
 
         if not exists(dirname(dest)):
             makedirs(dirname(dest))
 
-        name = basename(dest).split('.')[0]
+        text = self.substituteTemplatText(emptyFileTemplate(), dest)
+
         with open(dest, 'a') as f:
-            f.write('''
--------------------
-Main Title
--------------------
-:date: 2010-10-03 10:20
-:modified: 2010-10-04 18:40
-:tags: some, tags, for, your, text
-:category: nice
-:slug: {}
-:authors: Your Name
-:summary: Short version for index and feeds'''.format(name))
+            f.write(text)
+
         self._create_figures_folder_for_(self._to_local_src_path_(dest))
         self.sources_changed.emit()
 
     def addCopyToSrc(self, src, dest):
-        from uitreads import DuplicateFile
-        op = DuplicateFile()
+        from uitreads import DuplicateFile, CustomRoutine
+        # op = DuplicateFile()
+        # op.when_finished.connect(lambda: self.sources_changed.emit())
+        # op.start(src, dest)
+        # self._create_figures_folder_for_(self._to_local_src_path_(dest))
+        self._create_figures_folder_for_(self._to_local_src_path_(dest))
+        op = CustomRoutine(self.substituteTemplate)
         op.when_finished.connect(lambda: self.sources_changed.emit())
         op.start(src, dest)
-        self._create_figures_folder_for_(self._to_local_src_path_(dest))
+
+    def substituteTemplatText(self, template, dest_path):
+        from file_templates import generate_variables
+        variables = generate_variables(dest_path)
+        return template.format(**variables)
+
+    def substituteTemplate(self, src, dest):
+        with open(src, 'r') as srcFile:
+            text = self.substituteTemplatText(srcFile.read(), dest)
+            with open(dest, 'a') as destFile:
+                destFile.write(text)

@@ -196,7 +196,8 @@ class AppSettings(PropertiesGetDelegator):
 
 class SystemSettings(PropertiesGetDelegator):
 
-    template_dir_name = 'templates'
+    file_template_dir_name = 'fileTemplates'
+    project_template_dir_name = 'projectTemplates'
 
     def __init__(self):
         from os.path import sep
@@ -235,14 +236,13 @@ class SystemSettings(PropertiesGetDelegator):
 
     @property
     def templetesDirPath(self):
-        return self.userSettingsDir + self.sep + self.template_dir_name
+        return self.userSettingsDir + self.sep + self.file_template_dir_name
 
     @property
     def templateFiles(self):
-        from os import walk
+        from os import walk, sep
         p, dirs, files = walk(self.templetesDirPath).next()
-        return files
-
+        return [p + sep + f for f in files]
 
 
 
