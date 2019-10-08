@@ -119,7 +119,6 @@ class WelcomePanel(QWidget):
         no = QPushButton('No')
         no.clicked.connect(self.createOnlyUserDir)
 
-
         btLt = QHBoxLayout()
         btLt.addStretch(0)
         btLt.addWidget(yes)

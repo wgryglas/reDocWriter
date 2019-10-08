@@ -10,10 +10,10 @@ from pyqode.qt.QtWidgets import *
 # from images_panel import ImagesPanel
 # from sources_panel import SourcesTree
 # from core import Session
-from session_panel import SessionPanel, ColorScheme
+from session_panel import SessionPanel
 from launcher_panel import InitialPanel
 from git_repository import GitRepository
-from app_settings import SystemSettings, AppSettings
+from app_settings import SystemSettings, AppSettings, ColorScheme
 
 
 class MainWindow(QWidget):
@@ -57,7 +57,7 @@ class MainWindow(QWidget):
 
         self.repo = GitRepository(root_path)
 
-        self.session = SessionPanel(self.repo, self.app, self.settings)
+        self.session = SessionPanel(self.repo, self.app, self.system, self.settings)
 
         self.set_color_scheme(self.settings.color_scheme)
         # self.session.setContentsMargins(0, 0, 0, 0)

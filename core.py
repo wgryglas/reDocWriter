@@ -79,6 +79,8 @@ class Session(QObject):
 
     sources_changed = Signal()
 
+    added_new_source = Signal(str)
+
     # active_file_changed = Signal()
 
     def __init__(self, git_repo, errors=ErrorHandler(), **kwargs):
@@ -235,3 +237,13 @@ class Session(QObject):
         with open(self.active_full_path, 'r') as f:
             self._content_ = ''.join(f.readlines())
             self.content_changed.emit(self._content_)
+
+
+    def addEmptyToSrc(self, dest):
+        pass
+
+    def addCopyToSrc(self, src, dest):
+        # op = DuplicateFile()
+        # op.when_finished.connect(lambda: self._session_.)
+        # op.start(dir_path, [path])
+        pass

@@ -195,7 +195,11 @@ class AppSettings(PropertiesGetDelegator):
 
 
 class SystemSettings(PropertiesGetDelegator):
+
+    template_dir_name = 'templates'
+
     def __init__(self):
+        from os.path import sep
         platformName = sys.platform
         if platformName.startswith('linux'):
             os = Linux()
@@ -204,7 +208,8 @@ class SystemSettings(PropertiesGetDelegator):
         else:
             raise Exception('Your OS is not supported')
 
-        # self.os = os
+        self.sep = sep
+
         PropertiesGetDelegator.__init__(self, os)
 
     @property
@@ -227,6 +232,17 @@ class SystemSettings(PropertiesGetDelegator):
     def createUserDir(self):
         from os import makedirs
         makedirs(self.userSettingsDir)
+
+    @property
+    def templetesDirPath(self):
+        return self.userSettingsDir + self.sep + self.template_dir_name
+
+    @property
+    def templateFiles(self):
+        from os import walk
+        p, dirs, files = walk(self.templetesDirPath).next()
+        return files
+
 
 
 

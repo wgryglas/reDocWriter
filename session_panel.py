@@ -13,7 +13,7 @@ from editor_panel import EditorPanel
 
 class SessionPanel(QWidget):
 
-    def __init__(self, gitRepo, app, settings):
+    def __init__(self, gitRepo, app, system, settings):
         QWidget.__init__(self)
 
         from errors import ErrorHandler, DialogErrorView
@@ -28,7 +28,7 @@ class SessionPanel(QWidget):
 
         self.buttons_bar = QWidget()
 
-        self.project_tree = SourcesTree(self.session, self.errors)
+        self.project_tree = SourcesTree(self.session, system, self.errors)
         self.project_tree.source_selection_changed.connect(self._on_file_selection_)
         self.session.sources_changed.connect(self.project_tree.update_model)
 
@@ -52,9 +52,9 @@ class SessionPanel(QWidget):
 
         self.session.start()
 
-        any_file = find_first_file(self.session.get_sources_structure())
-        if any_file:
-            self.project_tree.setSelectedFile(any_file)
+        # any_file = find_first_file(self.session.get_sources_structure())
+        # if any_file:
+        #     self.project_tree.setSelectedFile(any_file)
 
     def setSyncScrolling(self, flag):
         if flag:

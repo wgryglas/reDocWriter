@@ -37,9 +37,13 @@ from core import Session
 # # settings.loadFromFile('/home/wgryglas/test_settings.xml')
 #
 # print settings.recent, settings.figure_width, settings.sort_images, settings.editor_font
+#
+# from app_settings import SystemSettings
+#
+# sys = SystemSettings()
+#
+# print sys.userSettingsDir, sys.settingsFilePath, sys.some_prop
 
-from app_settings import SystemSettings
 
-sys = SystemSettings()
-
-print sys.userSettingsDir, sys.settingsFilePath, sys.some_prop
+from os.path import dirname
+print dirname("/home/wgryglas/python/pelicanDoc")
