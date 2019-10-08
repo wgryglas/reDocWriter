@@ -52,9 +52,9 @@ class SessionPanel(QWidget):
 
         self.session.start()
 
-        # any_file = find_first_file(self.session.get_sources_structure())
-        # if any_file:
-        #     self.project_tree.setSelectedFile(any_file)
+        any_file = find_first_file(self.session.get_sources_structure())
+        if any_file:
+            self.project_tree.setSelectedFile(any_file)
 
     def setSyncScrolling(self, flag):
         if flag:

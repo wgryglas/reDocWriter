@@ -1,7 +1,7 @@
-import os, subprocess
+import subprocess
 from errors import ErrorHandler
 from files import *
-from async import start_process
+from async_execution import start_process
 
 from pyqode.qt.QtCore import Signal, QObject
 
@@ -56,6 +56,10 @@ class BaseWebsiteBuildEnvironment:
         result.extend(paths)
         return os.sep.join(result)
 
+    def get_figures_folder_full_path_for(self, src_local_path):
+        import os
+        return self.sources_root_path + os.sep + self.get_figures_folder_path_for(src_local_path)
+
     @property
     def sources_root_path(self):
         return self.repository_path + os.sep + self.rst_location
@@ -78,8 +82,6 @@ class Session(QObject):
     error_raised = Signal(str)
 
     sources_changed = Signal()
-
-    added_new_source = Signal(str)
 
     # active_file_changed = Signal()
 
@@ -176,6 +178,9 @@ class Session(QObject):
         :param source_file_location:
         :return:
         """
+        if self._active_file_ == source_file_location:
+            return
+
         if self.is_file_set:
             self.save_active_file()
         self._active_file_ = source_file_location
@@ -238,12 +243,43 @@ class Session(QObject):
             self._content_ = ''.join(f.readlines())
             self.content_changed.emit(self._content_)
 
+    def _to_local_src_path_(self, src_full_path):
+        if src_full_path.startswith(self._env_.sources_root_path):
+            return '.{}'.format(src_full_path[len(self._env_.sources_root_path):])
+        else:
+            raise ValueError('Provided src path does not match root sources location, can not convert it to local path')
+
+    def _create_figures_folder_for_(self, src_local_path):
+        import os
+        dir_path = self._env_.get_figures_folder_full_path_for(src_local_path)
+        os.makedirs(dir_path)
 
     def addEmptyToSrc(self, dest):
-        pass
+        from os.path import dirname, exists, basename
+        from os import makedirs
+
+        if not exists(dirname(dest)):
+            makedirs(dirname(dest))
+
+        name = basename(dest).split('.')[0]
+        with open(dest, 'a') as f:
+            f.write('''
+-------------------
+Main Title
+-------------------
+:date: 2010-10-03 10:20
+:modified: 2010-10-04 18:40
+:tags: some, tags, for, your, text
+:category: nice
+:slug: {}
+:authors: Your Name
+:summary: Short version for index and feeds'''.format(name))
+        self._create_figures_folder_for_(self._to_local_src_path_(dest))
+        self.sources_changed.emit()
 
     def addCopyToSrc(self, src, dest):
-        # op = DuplicateFile()
-        # op.when_finished.connect(lambda: self._session_.)
-        # op.start(dir_path, [path])
-        pass
+        from uitreads import DuplicateFile
+        op = DuplicateFile()
+        op.when_finished.connect(lambda: self.sources_changed.emit())
+        op.start(src, dest)
+        self._create_figures_folder_for_(self._to_local_src_path_(dest))

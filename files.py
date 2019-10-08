@@ -1,6 +1,7 @@
 import os
 from utils import creation_date
 
+
 def dir_path_without_last_sep(path):
     if path.endswith(os.sep):
         return path[:-len(os.sep)]
@@ -9,6 +10,13 @@ def dir_path_without_last_sep(path):
 
 
 def path_without_in_place_dot(path):
+    """
+    If path strings starts with './' it will return
+    the path without './' prefix, otherwise the path
+    will be unchanged
+    :param path: path string to file/dir
+    :return: stripped path
+    """
     if path.startswith('./'):
         return path[2:]
     else:
@@ -24,6 +32,13 @@ class FileNode:
 
     def __str__(self):
         return self.name
+
+    def basename(self):
+        b = self.name.split('.')
+        if len(b) > 0:
+            return b[0]
+        else:
+            return self.name
 
     @property
     def is_dir(self):

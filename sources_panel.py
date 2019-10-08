@@ -213,6 +213,7 @@ class SourcesTree(QWidget):
         self.delete_button.setEnabled(flag)
 
     def update_model(self):
+        toSelect = self.get_selected_file()
 
         model = create_directory_tree_model(self.tree,
                                             self._session_.get_sources_structure(),
@@ -225,6 +226,9 @@ class SourcesTree(QWidget):
 
         self.tree.setSelectionModel(selection_model)
         self.tree.setSelectionMode(QAbstractItemView.SingleSelection)
+
+        if toSelect:
+            self.setSelectedFile(toSelect)
 
     def is_any_selected(self):
         return len(self.tree.selectedIndexes()) > 0
@@ -267,15 +271,20 @@ class SourcesTree(QWidget):
                 return
             self._session_.addCopyToSrc(sourcePath, dest)
 
-
-
-def displ(s):
-    print s
+    def setSelectedFile(self, fileObj):
+        items = self.tree.model().findItems(fileObj.name)
+        for item in items:
+            if item.data().full_path == fileObj.full_path:
+                self.tree.selectionModel().setCurrentIndex(item.index(), QItemSelectionModel.Select)
+                return
 
 
 if __name__ == '__main__':
     import sys
     from pyqode.qt.QtWidgets import QApplication
+
+    def displ(s):
+        print s
 
     class SessionMokup:
         def __init__(self):

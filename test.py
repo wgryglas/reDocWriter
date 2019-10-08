@@ -4,14 +4,16 @@ from git_repository import GitRepository
 from core import Session
 
 # repo = GitRepository("/home/wgryglas/Code/Python/pelicanReDoc")
-# repo = GitRepository("/home/wgryglas/python/pelicanDoc")
+repo = GitRepository("/home/wgryglas/python/pelicanDoc")
 
 # print repo.isModified()
 
 # print repo.root_path
 
 
-# session = Session(repo)
+session = Session(repo)
+
+print session._to_local_src_path_('/home/wgryglas/python/pelicanDoc/content/test.rst')
 
 # session.set_active_file('test.rst')
 
@@ -44,6 +46,3 @@ from core import Session
 #
 # print sys.userSettingsDir, sys.settingsFilePath, sys.some_prop
 
-
-from os.path import dirname
-print dirname("/home/wgryglas/python/pelicanDoc")
