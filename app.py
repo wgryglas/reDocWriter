@@ -60,6 +60,11 @@ class MainWindow(QWidget):
         self.session = SessionPanel(self.repo, self.app, self.system, self.settings)
 
         self.set_color_scheme(self.settings.color_scheme)
+
+        # p = self.session.editor.palette()
+        # p.setColor(QPalette.Background, QColor(253, 246, 227))
+        # self.session.editor.setPalette(p)
+        # self.session.editor.setAutoFillBackground(True)
         # self.session.setContentsMargins(0, 0, 0, 0)
 
         self.main_layout.addWidget(self.session)
@@ -69,8 +74,12 @@ class MainWindow(QWidget):
 
     def set_color_scheme(self, scheme):
         if scheme == ColorScheme.defualt:
+            # p = self.palette()
+            # p.setColor(QPalette.Background, QColor(253, 246, 227))
+            # self.setPalette(p)
             self.setPalette(QPalette())
             # self.setStyleSheet('QPushButton{border:none; margin:4px}')
+
         else:
             self.setStyleSheet("MainWindow{background-color:rgb(37, 37, 37)}")
             # self.setStyleSheet("QPushButton{background-color:rgb(37, 37, 37); border-radius:3px; padding:5px}")

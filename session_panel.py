@@ -145,20 +145,30 @@ class SessionPanel(QWidget):
 
         commit = QPushButton("Commit")
 
+        loadExternal = QPushButton()
+        loadExternal.setIcon(self.style().standardIcon(QStyle.SP_DesktopIcon))
+        loadExternal.setToolTip('Open webpage in external browser')
+        loadExternal.clicked.connect(self.open_build_external)
+
         layout = QHBoxLayout()
-        layout.addStretch(0)
-        layout.addWidget(sync_scroll)
-        layout.addStretch(0)
         layout.addWidget(repo)
         layout.addSpacing(20)
         layout.addWidget(update)
         layout.addWidget(commit)
+        layout.addStretch(0)
+        layout.addWidget(sync_scroll)
+        layout.addStretch(0)
+        layout.addWidget(loadExternal)
 
         self.buttons_bar.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed))
         self.buttons_bar.setLayout(layout)
 
     def show_url(self, url_string):
         self.webview.load(QUrl(url_string))
+
+    def open_build_external(self):
+        import webbrowser
+        webbrowser.open('file://' + self.session.active_file_output)
 
     def layout_components(self):
         container = QSplitter()

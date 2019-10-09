@@ -4,7 +4,7 @@ def dummy_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
     return [Text("")], []
 
 
-custom_roles = ['vector', 'lorem']
+custom_roles = ['vector', 'lorem', 'input', 'number']
 
 
 def register_role_names(*args):

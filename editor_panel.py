@@ -14,7 +14,9 @@ class EditorPanel(QWidget):
 
         self.settings = settings
 
+        #self.editor = RstCodeEdit(color_scheme='qt' if self.settings.color_scheme == ColorScheme.defualt else 'darcula')
         self.editor = RstCodeEdit(color_scheme='qt' if self.settings.color_scheme == ColorScheme.defualt else 'darcula')
+
         self.editor.setFrameStyle(QFrame.NoFrame)
         if self.settings.editor_font and len(self.settings.editor_font) > 0:
             self.editor.font_name = self.settings.editor_font
