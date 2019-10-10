@@ -1,4 +1,4 @@
-from pyqode.qt.QtCore import Signal, QSize, Qt
+from pyqode.qt.QtCore import QSize, Qt, Signal
 from pyqode.qt.QtGui import QIcon, QColor, QPalette
 from pyqode.qt.QtWidgets import QWidget, QListWidget, QListWidgetItem, QVBoxLayout, QPushButton, QHBoxLayout, \
     QSizePolicy, QStyle, QFileDialog, QFrame
