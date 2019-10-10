@@ -1,8 +1,9 @@
-from pyqode.qt.QtCore import QSize, Qt, Signal
-from pyqode.qt.QtGui import QIcon, QColor, QPalette
+from pyqode.qt.QtCore import QSize, Qt, Signal, QFile, QIODevice, QTimer
+from pyqode.qt.QtGui import QIcon, QColor, QPalette, QApplication
 from pyqode.qt.QtWidgets import QWidget, QListWidget, QListWidgetItem, QVBoxLayout, QPushButton, QHBoxLayout, \
-    QSizePolicy, QStyle, QFileDialog, QFrame
+    QSizePolicy, QStyle, QFileDialog, QFrame, QPixmap
 from uitreads import LoadPixmaps, DeleteFiles
+import icons
 
 
 class ImagesPanel(QWidget):
@@ -31,6 +32,12 @@ class ImagesPanel(QWidget):
         self.add_files_button.setToolTip('Import images to repository')
         self.add_files_button.clicked.connect(self._open_import_)
 
+        self.screenshot_button = QPushButton()
+        #self.screenshot_button.setIcon(self.style().standardIcon(QStyle.SP_BrowserReload))
+        self.screenshot_button.setIcon(icons.screenshot())
+        self.screenshot_button.setToolTip('Take screenshot')
+        self.screenshot_button.clicked.connect(self.takeScreenshot)
+
         self.delete_button = QPushButton()
         self.delete_button.setIcon(self.style().standardIcon(QStyle.SP_TrashIcon))
         self.delete_button.setToolTip('Delete selected images')
@@ -44,6 +51,7 @@ class ImagesPanel(QWidget):
         box = QHBoxLayout()
         box.setContentsMargins(5, 5, 5, 5)
         box.addWidget(self.add_files_button)
+        box.addWidget(self.screenshot_button)
         box.addWidget(self.delete_button)
         box.addStretch(20)
         box.addWidget(self.insert_button)
@@ -130,6 +138,45 @@ class ImagesPanel(QWidget):
         thread = LoadPixmaps()
         thread.when_finished.connect(lambda maps: self._display_pixmaps_(files, paths))
         thread.start(paths)
+
+    def takeScreenshot(self):
+        self.window().showMinimized()
+        QTimer.singleShot(1000, self._takeScreenshot_now_)
+
+    def _takeScreenshot_now_(self):
+        import os
+
+        QApplication.beep()
+
+        pixmap = QPixmap.grabWindow(QApplication.desktop().winId(), 0, 0, -1, -1)
+
+        # self.showNormal()
+
+        parent_path = self._session_.active_file_figures_folder.full_path
+        files = map(lambda f: f.name, self._session_.get_figures_files_for(self._session_.active_local_path))
+
+        prefix = 'screenshot_{}.png'
+        id = 0
+        while prefix.format(id) in files:
+            id = id + 1
+
+        file_path = parent_path + os.sep + prefix.format(id)
+        iFile = QFile(file_path)
+        iFile.open(QIODevice.WriteOnly)
+        pixmap.save(iFile, "PNG")
+
+        # files = self._session_.get_figures_files_for(self._session_.active_local_path)
+        #
+        # fileObj = filter(lambda f: f.full_path == file_path, files)[0]
+        #
+        # self._display_pixmaps_([fileObj], [pixmap])
+        self.show_source_images(self._session_.active_local_path)
+
+        # self.window().setWindowFlags(Qt.WindowMaximized)
+        #QTimer.singleShot(500, self.window().showNormal)
+        self.window().activateWindow()
+        self.window().raise_()
+
 
     def _handle_selection_(self):
         enabled = len(self.list.selectedItems()) > 0

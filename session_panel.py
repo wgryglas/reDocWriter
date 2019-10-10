@@ -96,6 +96,7 @@ class SessionPanel(QWidget):
         self.webview.load(QUrl(url_string))
 
     def layout_toolbar(self):
+        import icons
         # save = QPushButton("Save")
         # save.clicked.connect(lambda: self.errors.show("Hi, nice to meet you"))
 
@@ -146,7 +147,7 @@ class SessionPanel(QWidget):
         commit = QPushButton("Commit")
 
         loadExternal = QPushButton()
-        loadExternal.setIcon(self.style().standardIcon(QStyle.SP_DesktopIcon))
+        loadExternal.setIcon(icons.webbrowser())
         loadExternal.setToolTip('Open webpage in external browser')
         loadExternal.clicked.connect(self.open_build_external)
 
