@@ -97,20 +97,94 @@ from core import Session
 
 import sys
 from PyQt4 import QtGui, QtCore
-from PyQt4.QtCore import Qt, QRect
-from PyQt4.QtGui import QPushButton
+from PyQt4.QtCore import Qt, QRect, QPoint
+from PyQt4.QtGui import QPushButton, QStyle, QHBoxLayout, QVBoxLayout, QWidget, QCursor, QApplication
 
-class Example(QtGui.QMainWindow):
+class Direction:
+    left = 0
+    top = 1
+    right = 2
+    bottom = 3
+
+
+def makeHCenterLayout(widget):
+    lt = QHBoxLayout()
+    lt.addStretch(0)
+    lt.addWidget(widget)
+    lt.addStretch(0)
+    return lt
+
+
+class WindowRegionSelector(QtGui.QMainWindow):
     def __init__(self):
-        super(Example, self).__init__()
+        super(WindowRegionSelector, self).__init__()
         self.initUI()
 
-    def mousePressEvent(self, QMouseEvent):
-        print QMouseEvent.pos()
+        self.curr_dir = None
+        self.press_pos = QPoint()
+        self.startRect = QRect()
+        self.useGrid = True
+        self.gridPixelSize = 10
+
+    def grapMousePosAndRect(self):
+        p = QCursor.pos()
+        self.press_pos = p
+        print self.pos()
+        self.startRect.setRect(self.pos().x(), self.pos().y(), self.width(), self.height())
 
     def mouseReleaseEvent(self, QMouseEvent):
-        cursor = QtGui.QCursor()
-        print cursor.pos()
+        self.releaseDir()
+
+    def releaseDir(self):
+        self.curr_dir = None
+
+    def snapCoordinate(self, c):
+        rest = c % self.gridPixelSize
+        result = (c / self.gridPixelSize) * self.gridPixelSize
+        if rest > self.gridPixelSize / 2:
+            result += self.gridPixelSize
+        return result
+
+    def constraint(self, rect):
+        if self.useGrid:
+            x = self.snapCoordinate(rect.x())
+            y = self.snapCoordinate(rect.y())
+            r = self.snapCoordinate(rect.right())
+            b = self.snapCoordinate(rect.bottom())
+            return QRect(x, y, r-x, b - y)
+        else:
+            return rect
+
+    def mouseMoveEvent(self, QMouseEvent):
+        p = QCursor.pos()
+        result = QRect()
+        if self.curr_dir == Direction.left or self.curr_dir == Direction.right:
+            delta = p.x() - self.press_pos.x()
+            if self.curr_dir == Direction.left:
+                result.setRect(self.startRect.x() + delta, self.startRect.y(),
+                               self.startRect.width() - delta, self.startRect.height())
+            else:
+                result.setRect(self.startRect.x(), self.startRect.y(),
+                               self.startRect.width() + delta, self.startRect.height())
+
+        elif self.curr_dir == Direction.top or self.curr_dir == Direction.bottom:
+            delta = p.y() - self.press_pos.y()
+            if self.curr_dir == Direction.top:
+                result.setRect(self.startRect.x(), self.startRect.y() + delta,
+                               self.startRect.width(), self.startRect.height() - delta)
+            else:
+                result.setRect(self.startRect.x(), self.startRect.y(),
+                               self.startRect.width(),  self.startRect.height() + delta)
+        else:
+            return
+
+        result = self.constraint(result)
+        self.resize(result.width(), result.height())
+        self.move(result.x(), result.y())
+
+    def makeFullScreen(self):
+        # self.window().setWindowFlags(Qt.WindowMaximized)
+        self.window().showMaximized()
 
     def paintEvent(self, e):
         qp = QtGui.QPainter()
@@ -119,34 +193,82 @@ class Example(QtGui.QMainWindow):
         qp.drawRect(QRect(0, 0, self.width()-1, self.height()-1))
         qp.end()
 
+    def setPos(self, dir):
+        print 'setting dir', dir
+        self.curr_dir = dir
 
-    def setLeft(self):
-        pass
-
+    def makeDirButton(self, dir, iconId, style):
+        b = QPushButton()
+        if style:
+            b.setStyleSheet(style)
+        b.pressed.connect(lambda: self.setPos(dir))
+        b.pressed.connect(self.grapMousePosAndRect)
+        b.setIcon(self.style().standardIcon(iconId))
+        return b
 
     def initUI(self):
-        qbtn = QtGui.QPushButton('Quit', self)
-        qbtn.resize(qbtn.sizeHint())
-        qbtn.move(50, 50)
-        qbtn.clicked.connect(lambda : self.close())
+        transp_button_style = """
+        QPushButton {
+          margin: 0;
+          padding: 0;
+          background:transparent;
+          border:none;
+          color: white;
+        }
+        QPushButton:hover {
+            border: 1px solid white;
+            border-radius:3px;
+        }
+        """
 
-        left = QPushButton()
-        # left.pressed.con
+        qbtn = QPushButton('Quit')
+        qbtn.clicked.connect(lambda: self.close())
 
+        maximize = QPushButton('Maximize')
+        maximize.clicked.connect(self.makeFullScreen)
 
-        self.setGeometry(0, 0, 1024, 768)
-        self.setWindowTitle('Quit button')
+        left = self.makeDirButton(Direction.left, QStyle.SP_ArrowBack, transp_button_style)
+        right = self.makeDirButton(Direction.right, QStyle.SP_ArrowForward, transp_button_style)
+        top = self.makeDirButton(Direction.top, QStyle.SP_ArrowUp, transp_button_style)
+        bottom = self.makeDirButton(Direction.bottom, QStyle.SP_ArrowDown, transp_button_style)
+
+        ltLeftRight = QHBoxLayout()
+        ltLeftRight.setSpacing(0)
+        ltLeftRight.setContentsMargins(0, 0, 0, 0)
+        ltLeftRight.addWidget(left)
+        ltLeftRight.addStretch(10)
+        ltLeftRight.addWidget(qbtn)
+        ltLeftRight.addWidget(maximize)
+        ltLeftRight.addStretch(10)
+        ltLeftRight.addWidget(right)
+
+        vertLt = QVBoxLayout()
+        vertLt.setContentsMargins(0, 0, 0, 0)
+        vertLt.setSpacing(0)
+        vertLt.addLayout(makeHCenterLayout(top))
+        vertLt.addStretch(10)
+        vertLt.addLayout(ltLeftRight)
+        vertLt.addStretch(10)
+        vertLt.addLayout(makeHCenterLayout(bottom))
+
+        mainWidget = QWidget()
+        mainWidget.setContentsMargins(0, 0, 0, 0)
+        mainWidget.setLayout(vertLt)
+
+        self.setContentsMargins(0, 0, 0, 0)
+        self.setCentralWidget(mainWidget)
+
+        # self.setGeometry(0, 0, 1024, 768)
+        # self.setWindowTitle('Quit button')
         self.setWindowFlags(self.windowFlags() | QtCore.Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.show()
 
-    def test(self):
-        print "test"
 
 
 def main():
     app = QtGui.QApplication(sys.argv)
-    ex = Example()
+    ex = WindowRegionSelector()
     sys.exit(app.exec_())
 
 if __name__ == '__main__':
