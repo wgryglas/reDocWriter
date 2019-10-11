@@ -17,3 +17,6 @@ def screenshot():
 
 def webbrowser():
     return _load_icon_('webbrowser')
+
+def get(name):
+    return _load_icon_(name)

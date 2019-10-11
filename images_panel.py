@@ -23,7 +23,7 @@ class ImagesPanel(QWidget):
         self.buttons_bar = QFrame()
 
         self.insert_button = QPushButton()
-        self.insert_button.setIcon(self.style().standardIcon(QStyle.SP_ArrowDown))
+        self.insert_button.setIcon(icons.get('insert_image'))
         self.insert_button.setToolTip('Insert as image')
         self.insert_button.clicked.connect(self._do_insert_)
 
@@ -33,8 +33,7 @@ class ImagesPanel(QWidget):
         self.add_files_button.clicked.connect(self._open_import_)
 
         self.screenshot_button = QPushButton()
-        #self.screenshot_button.setIcon(self.style().standardIcon(QStyle.SP_BrowserReload))
-        self.screenshot_button.setIcon(icons.screenshot())
+        self.screenshot_button.setIcon(icons.get('screenshot'))
         self.screenshot_button.setToolTip('Take screenshot')
         self.screenshot_button.clicked.connect(self.takeScreenshot)
 

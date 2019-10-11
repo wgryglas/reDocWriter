@@ -4,7 +4,7 @@ from pyqode.qt.QtWidgets import QWidget, QFrame, QTreeView, QVBoxLayout, QPushBu
     QSizePolicy, QStyle, QItemSelectionModel, QAbstractItemView, QDialog, QToolButton, QGraphicsDropShadowEffect, \
     QLineEdit, QLabel, QValidator
 from pyqode.qt.QtGui import QStandardItemModel, QStandardItem
-
+import icons
 
 def alwaysTrue(*args):
     return True
@@ -170,7 +170,8 @@ class SourcesTree(QWidget):
         self.add_folder.setToolTip('Add folder')
 
         self.add_page = QPushButton()
-        self.add_page.setIcon(self.style().standardIcon(QStyle.SP_FileIcon))
+        #self.add_page.setIcon(self.style().standardIcon(QStyle.SP_FileIcon))
+        self.add_page.setIcon(icons.get('add_file'))
         self.add_page.setToolTip('Add new page')
         self.add_page.clicked.connect(self.showNewPageWindow)
 
