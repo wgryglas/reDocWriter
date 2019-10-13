@@ -200,7 +200,13 @@ class RectSelectionItem(QGraphicsItem):
     def boundingRect(self, *args, **kwargs):
         return QRectF(-self.padding, -self.padding, self.size.width()+2*self.padding, self.size.height()+2*self.padding)
 
+    def paintItem(self, qPainter, selected):
+        qPainter.setPen(QPen(selColor if selected else markColor, self.lineWidth, Qt.SolidLine))
+        qPainter.drawRect(0, 0, self.width, self.height)
+
     def paint(self, qPainter, qStyleOptionGraphicsItem, qWidget):
+        qPainter.setRenderHint(QPainter.Antialiasing, True)
+        qPainter.setRenderHint(QPainter.TextAntialiasing, True)
 
         sel = self.isSelected()
         if not sel:
@@ -212,8 +218,7 @@ class RectSelectionItem(QGraphicsItem):
                 need_redraw = True
             a.setVisible(sel)
 
-        qPainter.setPen(QPen(selColor if sel else markColor, self.lineWidth, Qt.SolidLine))
-        qPainter.drawRect(0, 0, self.width, self.height)
+        self.paintItem(qPainter, sel)
 
         #force redraw on child selection changed
         if need_redraw:
@@ -235,6 +240,18 @@ class RectSelectionItem(QGraphicsItem):
         s = self.constr.spacing
         item.setPos(p.x()+5*s, p.y()+5*s)
         return item
+
+
+class EllipseSelectionItem(RectSelectionItem):
+        def __init__(self, size, constr):
+            RectSelectionItem.__init__(self, size, constr)
+
+        def paintItem(self, qPainter, selected):
+            qPainter.setPen(QPen(selColor if selected else markColor, self.lineWidth, Qt.SolidLine))
+            qPainter.drawEllipse(0, 0, self.width, self.height)
+
+        def clone(self):
+            return EllipseSelectionItem(self.size, self.constr)
 
 
 class PosConstraint:
@@ -334,28 +351,24 @@ class ImageScene(QGraphicsScene):
             self.gridLines.append(item)
             y += spacing
 
-    def addNumberElement(self, numberProvider):
+    def _add_and_position_element(self, item):
         if not self.imgItem:
             raise ValueError('Image must be set before adding elements')
-        item = NumberItem(numberProvider, self.posConstr)
+        r = self.sceneRect()
+        item.setPos(r.width() / 2, r.height() / 2)
         item.setParentItem(self.imgItem)
-        item.setPos(self.recentPos)
         self.userItems.append(item)
         return item
+
+    def addNumberElement(self, numberProvider):
+        return self._add_and_position_element(NumberItem(numberProvider, self.posConstr))
 
     def addRectElement(self):
-        if not self.imgItem:
-            raise ValueError('Image must be set before adding elements')
+        return self._add_and_position_element(RectSelectionItem(QSizeF(100, 50), self.posConstr))
 
-        item = RectSelectionItem(QSizeF(100, 50), self.posConstr)
+    def addEllipseElement(self):
+        return self._add_and_position_element(EllipseSelectionItem(QSizeF(50, 50), self.posConstr))
 
-        r = self.sceneRect()
-
-        item.setPos(r.width()/2, r.height()/2)
-        item.setParentItem(self.imgItem)
-        self.userItems.append(item)
-
-        return item
 
     def duplicateSelection(self):
         newEl = [e.clone() for e in self.selectedElements()]
@@ -472,6 +485,11 @@ class EditImageWindow(QMainWindow):
         add_rect.setToolTip('Add Rectangle')
         add_rect.clicked.connect(self.scene.addRectElement)
 
+        add_ellipse = QPushButton()
+        add_ellipse.setIcon(icons.get('ellipse'))
+        add_ellipse.setToolTip('Add Ellipse')
+        add_ellipse.clicked.connect(self.scene.addEllipseElement)
+
         add_number = QPushButton()
         add_number.setToolTip('Add number')
         add_number.setIcon(icons.get('add_number'))
@@ -509,6 +527,7 @@ class EditImageWindow(QMainWindow):
 
         lt = QHBoxLayout()
         lt.addWidget(add_rect)
+        lt.addWidget(add_ellipse)
         lt.addWidget(add_number)
         lt.addSpacing(20)
         lt.addWidget(duplicate_button)
@@ -556,7 +575,7 @@ def main():
     import sys
 
     app = QApplication(sys.argv)
-    win = EditImageWindow("/home/wgryglas/test-im-edit.png.png")
+    win = EditImageWindow("/home/wgryglas/test-edit.png")
     win.show()
 
 
