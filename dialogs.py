@@ -2,6 +2,7 @@
 from pyqode.qt.QtCore import Signal, Qt
 from pyqode.qt.QtWidgets import QDialog, QPushButton, QStyle, QVBoxLayout, QHBoxLayout
 
+
 class OKCancelDialog(QDialog):
     on_ok = Signal()
     on_close = Signal()
@@ -11,13 +12,13 @@ class OKCancelDialog(QDialog):
 
         ok = QPushButton()
         ok.setIcon(self.style().standardIcon(QStyle.SP_DialogOkButton))
-        ok.setToolTip('Ok')
+        ok.setText('Ok')
         ok.clicked.connect(self.on_ok.emit)
         ok.clicked.connect(lambda: self.close())
 
         cancel = QPushButton()
         cancel.setIcon(self.style().standardIcon(QStyle.SP_DialogCancelButton))
-        ok.setToolTip('Cancel')
+        cancel.setText('Cancel')
         cancel.clicked.connect(lambda: self.close())
 
         buttonsLt = QHBoxLayout()

@@ -4,6 +4,7 @@ from pyqode.qt.QtWidgets import QWidget, QListWidget, QListWidgetItem, QVBoxLayo
     QSizePolicy, QStyle, QFileDialog, QFrame, QPixmap
 from uitreads import LoadPixmaps, DeleteFiles
 import icons
+from screenshot_selection import WindowRegionSelector
 
 
 class ImagesPanel(QWidget):
@@ -35,7 +36,7 @@ class ImagesPanel(QWidget):
         self.screenshot_button = QPushButton()
         self.screenshot_button.setIcon(icons.get('screenshot'))
         self.screenshot_button.setToolTip('Take screenshot')
-        self.screenshot_button.clicked.connect(self.takeScreenshot)
+        self.screenshot_button.clicked.connect(self.startScreenshot)
 
         self.delete_button = QPushButton()
         self.delete_button.setIcon(self.style().standardIcon(QStyle.SP_TrashIcon))
@@ -43,6 +44,10 @@ class ImagesPanel(QWidget):
         self.delete_button.clicked.connect(self._delete_selection_)
 
         self._revalidate_()
+
+        self.screenshot_selector = WindowRegionSelector()
+        self.screenshot_selector.on_take_screenshot.connect(self.takeScreenshot)
+        self.screenshot_selector.on_quit.connect(self.moveWindowBack)
 
         self._do_layout_()
 
@@ -59,18 +64,13 @@ class ImagesPanel(QWidget):
 
         # self.buttons_bar.setObjectName('buttons_bar')
         self.buttons_bar.setObjectName('buttons')
-        self.buttons_bar.setStyleSheet('QFrame#buttons{background:transparent; '
-                                       'border-top:1px solid gray; '
-                                       'border-left:1px solid gray; border-right:1px solid gray;'
-                                       'border-top-left-radius:3px; border-top-right-radius:3px}')
-
-        # pal = self.buttons_bar.palette()
-        # pal.setColor(QPalette.Background, QColor('darkgray'))
-        # pal.setColor(QPalette.Background, QColor('white'))
-        # pal.setColor(QPalette.Foreground, QColor('darkgray'))
-        # self.buttons_bar.setPalette(pal)
-        # self.buttons_bar.setAutoFillBackground(True)
-        # self.buttons_bar.setFrameShape(QFrame.Box)
+        self.buttons_bar.setStyleSheet("""
+        QFrame#buttons{
+            border-top:1px solid gray;
+            border-left:1px solid gray; border-right:1px solid gray;
+            border-top-left-radius:3px; border-top-right-radius:3px
+        }
+        """)
 
     def _do_layout_(self):
         box = QVBoxLayout()
@@ -138,18 +138,28 @@ class ImagesPanel(QWidget):
         thread.when_finished.connect(lambda maps: self._display_pixmaps_(files, paths))
         thread.start(paths)
 
-    def takeScreenshot(self):
-        self.window().showMinimized()
-        QTimer.singleShot(1000, self._takeScreenshot_now_)
+    def moveWindowBack(self):
+        self.window().activateWindow()
+        self.window().raise_()
 
-    def _takeScreenshot_now_(self):
+
+    def startScreenshot(self):
+        self.window().showMinimized()
+        self.screenshot_selector.show()
+
+    def takeScreenshot(self, region=None):
+        QTimer.singleShot(500, lambda: self._takeScreenshot_now_(region))
+
+    def _takeScreenshot_now_(self, region=None):
         import os
 
         QApplication.beep()
 
-        pixmap = QPixmap.grabWindow(QApplication.desktop().winId(), 0, 0, -1, -1)
-
-        # self.showNormal()
+        if region is None:
+            pixmap = QPixmap.grabWindow(QApplication.desktop().winId(), 0, 0, -1, -1)
+        else:
+            pixmap = QPixmap.grabWindow(QApplication.desktop().winId(),
+                                        region.x(), region.y(), region.width(), region.height())
 
         parent_path = self._session_.active_file_figures_folder.full_path
         files = map(lambda f: f.name, self._session_.get_figures_files_for(self._session_.active_local_path))
@@ -164,17 +174,9 @@ class ImagesPanel(QWidget):
         iFile.open(QIODevice.WriteOnly)
         pixmap.save(iFile, "PNG")
 
-        # files = self._session_.get_figures_files_for(self._session_.active_local_path)
-        #
-        # fileObj = filter(lambda f: f.full_path == file_path, files)[0]
-        #
-        # self._display_pixmaps_([fileObj], [pixmap])
         self.show_source_images(self._session_.active_local_path)
 
-        # self.window().setWindowFlags(Qt.WindowMaximized)
-        #QTimer.singleShot(500, self.window().showNormal)
-        self.window().activateWindow()
-        self.window().raise_()
+        self.moveWindowBack()
 
 
     def _handle_selection_(self):
