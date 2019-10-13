@@ -3,7 +3,7 @@
 from pyqode.qt.QtCore import Qt, QSizeF, QRectF, QPointF, Signal
 from pyqode.qt.QtWidgets import QGraphicsView, QGraphicsItem, QPen, QColor, QPainter, QGraphicsScene, QPixmap, \
     QGraphicsLineItem, QPainterPath, QGraphicsRectItem, QGraphicsPixmapItem, QMainWindow, QWidget, QPushButton, \
-    QCheckBox, QSpinBox, QLineEdit, QHBoxLayout, QVBoxLayout, QStyle
+    QCheckBox, QSpinBox, QLineEdit, QHBoxLayout, QVBoxLayout, QStyle, QIntValidator, QLabel
 
 
 markColor = QColor(100, 136, 255)
@@ -60,31 +60,53 @@ class NumberItem(QGraphicsItem):
         return item
 
 
-class ExtensionArrow(QGraphicsPixmapItem):
+class ExtensionArrow(QGraphicsRectItem):
 
     def __init__(self, orientation, on_drag):
-        QGraphicsPixmapItem.__init__(self, QPixmap('/home/wgryglas/Code/Python/reDocsEditor/assets/icons/arrow-down.png'))
+        QGraphicsRectItem.__init__(self)
 
+        image = QGraphicsPixmapItem(QPixmap('/home/wgryglas/Code/Python/reDocsEditor/assets/icons/arrow-down.png'))
+        image.setParentItem(self)
         self.on_drag = on_drag
 
         if orientation == 'up':
-            self.rotate(180)
+            self.setRect(QRectF(0, -22, 30, 15))
+            image.rotate(180)
+            image.setPos(24, -5)
+        elif orientation == 'down':
+            self.setRect(QRectF(0, 5, 30, 15))
+            image.setPos(8, 5)
         elif orientation == 'left':
-            self.rotate(90)
-        elif orientation == 'right':
-            self.rotate(-90)
+            self.setRect(QRectF(-22, 0, 15, 30))
+            image.rotate(90)
+            image.setPos(-5, 8)
+        else:
+            self.setRect(QRectF(5, 0, 15, 30))
+            image.rotate(-90)
+            image.setPos(5, 24)
+
+        self.setBrush(QColor(100, 136, 255, 100))
+        self.setPen(QColor(100, 136, 255, 100))
 
         self.orientation = orientation
 
+        image.setFlag(QGraphicsItem.ItemIsSelectable, False)
         self.setFlag(QGraphicsItem.ItemIsSelectable)
-        self.setFlag(QGraphicsItem.ItemIsFocusable)
+        # self.setFlag(QGraphicsItem.ItemIsFocusable)
 
     def paint(self, qPainter, qStyleOptionGraphicsItem, qWidget):
-        qPainter.fillRect(2, 2, 12, 12, QColor(100, 136, 255, 100))
-        QGraphicsPixmapItem.paint(self, qPainter, qStyleOptionGraphicsItem, qWidget)
+        # qPainter.fillRect(2, 2, 28, 18, QColor(100, 136, 255, 100))
+        QGraphicsRectItem.paint(self, qPainter, qStyleOptionGraphicsItem, qWidget)
 
     def dragMove(self, delta):
-        self.on_drag(delta.y())
+        if self.orientation == 'up':
+            self.on_drag(-delta.y())
+        elif self.orientation == 'down':
+            self.on_drag(delta.y())
+        elif self.orientation == 'left':
+            self.on_drag(-delta.x())
+        else:
+            self.on_drag(delta.x())
 
 
 class RectSelectionItem(QGraphicsItem):
@@ -138,11 +160,11 @@ class RectSelectionItem(QGraphicsItem):
         if h <= 0:
             h = self.height
 
-        self.arrows[0].setPos(0, h/2-8)
-        self.arrows[1].setPos(w, h/2+8)
+        self.arrows[0].setPos(0, (h-self.arrows[0].rect().height())/2 )
+        self.arrows[1].setPos(w, (h-self.arrows[1].rect().height())/2 )
 
-        self.arrows[2].setPos(w/2+8, 0)
-        self.arrows[3].setPos(w/2-8, h)
+        self.arrows[2].setPos((w-self.arrows[2].rect().width())/2, 0)
+        self.arrows[3].setPos((w-self.arrows[3].rect().width())/2, h)
 
         min = self.constr(QPointF(x, y))
         max = self.constr(QPointF(x+w,y+h))
@@ -218,17 +240,19 @@ class RectSelectionItem(QGraphicsItem):
 class PosConstraint:
     def __init__(self, spacing):
         self.spacing = spacing
+        self.xShift = 0
+        self.yShift = 0
 
     def __call__(self, pnt):
         if self.spacing == 1:
             return pnt
 
-        ix = int(pnt.x())
-        iy = int(pnt.y())
-        x = (ix / self.spacing) * self.spacing
+        ix = int(pnt.x()) - self.xShift
+        iy = int(pnt.y()) - self.yShift
+        x = (ix / self.spacing) * self.spacing + self.xShift
         # if ix % self.spacing >= 5:
         #     x += self.spacing
-        y = (iy / self.spacing) * self.spacing
+        y = (iy / self.spacing) * self.spacing + self.yShift
         # if iy % self.spacing >= 5:
         #     y += self.spacing
 
@@ -241,9 +265,10 @@ class ImageScene(QGraphicsScene):
         QGraphicsScene.__init__(self)
         self.imgItem = None
         self.gridLines = []
-        self.spacing = 10
+        self.gridXShift = 0
+        self.gridYShift = 0
 
-        self.posConstr = PosConstraint(self.spacing)
+        self.posConstr = PosConstraint(10)
 
         self.pressPos = None
         self.draggingItems = dict()
@@ -258,7 +283,15 @@ class ImageScene(QGraphicsScene):
         return [item for item in self.selectedItems() if item.parentItem() == self.imgItem]
 
     def setSpacing(self, spacing):
-        self.spacing = spacing
+        self.posConstr.spacing = spacing
+        self.updateGrid()
+
+    def setXGridShift(self, shift):
+        self.posConstr.xShift = shift
+        self.updateGrid()
+
+    def setYGridShift(self, shift):
+        self.posConstr.yShift = shift
         self.updateGrid()
 
     def setImage(self, url):
@@ -273,32 +306,33 @@ class ImageScene(QGraphicsScene):
         rect = self.imgItem.boundingRect()
         w = rect.width()
         h = rect.height()
+        spacing = self.posConstr.spacing
 
         for i in self.gridLines:
-            self.imgItem.removeItem(i)
+            self.removeItem(i)
             del i
         self.gridLines = []
 
-        if self.spacing == 1:
+        if spacing == 1:
             return
 
         color = QColor(100, 100, 100, 20)
 
-        x = 0
+        x = self.posConstr.xShift
         while x <= w:
             item = QGraphicsLineItem(x, 0, x, h)
             item.setPen(color)
             item.setParentItem(self.imgItem)
             self.gridLines.append(item)
-            x += self.spacing
+            x += spacing
 
-        y = 0
+        y = self.posConstr.yShift
         while y <= h:
             item = QGraphicsLineItem(0, y, w, y)
             item.setParentItem(self.imgItem)
             item.setPen(color)
             self.gridLines.append(item)
-            y += self.spacing
+            y += spacing
 
     def addNumberElement(self, numberProvider):
         if not self.imgItem:
@@ -314,7 +348,10 @@ class ImageScene(QGraphicsScene):
             raise ValueError('Image must be set before adding elements')
 
         item = RectSelectionItem(QSizeF(100, 50), self.posConstr)
-        item.setPos(self.recentPos)
+
+        r = self.sceneRect()
+
+        item.setPos(r.width()/2, r.height()/2)
         item.setParentItem(self.imgItem)
         self.userItems.append(item)
 
@@ -455,6 +492,21 @@ class EditImageWindow(QMainWindow):
         delete_button.clicked.connect(lambda: self.scene.deleteSelected())
         self.enabledOnSelection.append(delete_button)
 
+
+        spacing = QLineEdit()
+        spacing.setText(str(self.scene.posConstr.spacing))
+        spacing.setValidator(QIntValidator(bottom=1))
+        spacing.returnPressed.connect(lambda: self.scene.setSpacing(int(spacing.text())))
+        spacing.setMaximumWidth(30)
+
+        xshift = QSpinBox()
+        xshift.setValue(self.scene.posConstr.xShift)
+        xshift.valueChanged.connect(lambda v: self.scene.setXGridShift(v))
+
+        yshift = QSpinBox()
+        yshift.setValue(self.scene.posConstr.yShift)
+        yshift.valueChanged.connect(lambda v: self.scene.setYGridShift(v))
+
         lt = QHBoxLayout()
         lt.addWidget(add_rect)
         lt.addWidget(add_number)
@@ -463,6 +515,13 @@ class EditImageWindow(QMainWindow):
         lt.addSpacing(20)
         lt.addWidget(delete_button)
         lt.addStretch()
+        lt.addWidget(QLabel('Grid Spacing'))
+        lt.addWidget(spacing)
+        lt.addWidget(QLabel('X Grid Shift'))
+        lt.addWidget(xshift)
+        lt.addWidget(QLabel('Y Grid Shift'))
+        lt.addWidget(yshift)
+
         panel.setLayout(lt)
 
         return panel
