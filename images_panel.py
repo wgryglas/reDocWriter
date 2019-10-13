@@ -43,11 +43,16 @@ class ImagesPanel(QWidget):
         self.delete_button.setToolTip('Delete selected images')
         self.delete_button.clicked.connect(self._delete_selection_)
 
-        self._revalidate_()
+        self.edit_image = QPushButton()
+        self.edit_image.setToolTip('Edit image')
+        self.edit_image.setIcon(icons.get('edit-image'))
+        self.edit_image.clicked.connect(self._open_edit_window_)
 
         self.screenshot_selector = WindowRegionSelector()
         self.screenshot_selector.on_take_screenshot.connect(self.takeScreenshot)
         self.screenshot_selector.on_quit.connect(self.moveWindowBack)
+
+        self._revalidate_()
 
         self._do_layout_()
 
@@ -56,6 +61,7 @@ class ImagesPanel(QWidget):
         box.setContentsMargins(5, 5, 5, 5)
         box.addWidget(self.add_files_button)
         box.addWidget(self.screenshot_button)
+        box.addWidget(self.edit_image)
         box.addWidget(self.delete_button)
         box.addStretch(20)
         box.addWidget(self.insert_button)
@@ -92,12 +98,25 @@ class ImagesPanel(QWidget):
         # self.list.setMaximumHeight(400)
         # self.list.setResizeMode(QListWidget.Adjust)
 
-    def _revalidate_(self):
+    def _revalidate_buttons_(self):
         enabled = self.selected_file is not None
         self.delete_button.setEnabled(enabled)
         self.insert_button.setEnabled(enabled)
+        self.edit_image.setEnabled(enabled)
+
+    def _revalidate_(self):
+        self._revalidate_buttons_()
         if self._session_.is_file_set:
             self.show_source_images(self._session_.active_local_path)
+
+    def _open_edit_window_(self):
+        path = self.selected_file.full_path
+        from image_edit import EditImageWindow
+        win = EditImageWindow(path)
+        win.on_saved.connect(lambda: self._session_.update_website())
+        win.on_saved.connect(lambda: self.show_source_images(self._session_.active_local_path))
+        win.showMaximized()
+
 
     def _display_pixmaps_(self, files, pixmaps):
         from utils import argsort, reordered, creation_date
@@ -122,6 +141,7 @@ class ImagesPanel(QWidget):
     def show_source_images(self, source_local_path):
         image_files = self._session_.get_figures_files_for(source_local_path)
         self.display_figures(image_files)
+        self._revalidate_buttons_()
 
     @property
     def isAnySelected(self):
@@ -182,12 +202,11 @@ class ImagesPanel(QWidget):
     def _handle_selection_(self):
         enabled = len(self.list.selectedItems()) > 0
 
-        self.insert_button.setEnabled(enabled)
-        self.delete_button.setEnabled(enabled)
-
         if enabled:
             index = self.list.selectedIndexes()[0].row()
             self.selected_file = self.visible_files[index]
+
+        self._revalidate_buttons_()
 
     def _do_insert_(self):
         path = self.selected_file.local_path if self._settings_.relative_paths else self.selected_file.full_path
