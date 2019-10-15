@@ -120,6 +120,9 @@ class ExtensionArrow(QGraphicsRectItem):
         self.image = image
 
         self.setFlag(QGraphicsItem.ItemIsSelectable)
+
+        self.setAcceptHoverEvents(True)
+
         # self.setFlag(QGraphicsItem.ItemIsFocusable)
 
     def paint(self, qPainter, qStyleOptionGraphicsItem, qWidget):
@@ -151,18 +154,28 @@ class MoveHandle(QGraphicsItem):
         self.h = h
         self.on_drag = on_drag
         self.setFlag(QGraphicsItem.ItemIsSelectable, True)
+        # self.setFlag(QGraphicsItem.ITem)
+        self.setAcceptHoverEvents(True)
 
     def boundingRect(self, *args, **kwargs):
         return QRectF(0, 0, self.w, self.h)
 
-    def paint(self, qPainter, qStyleOptionGraphicsItem, qWidget):
-        if self.isUnderMouse():
-            qPainter.setPen(QPen(hoverColor, 3, Qt.SolidLine))
-        else:
-            qPainter.setPen(QPen(selColor, 3, Qt.SolidLine))
+    # def hoverEnterEvent(self, *args, **kwargs):
+    #     QGraphicsItem.hoverEnterEvent(self, *args, **kwargs)
+    #     self.update(self.boundingRect())
+    #
+    #
+    # def hoverLeaveEvent(self, *args, **kwargs):
+    #     QGraphicsItem.hoverLeaveEvent(self, *args, **kwargs)
+    #     self.update(self.boundingRect())
 
-        qPainter.drawLine(-self.w/2, 0, self.w/2, 0)
-        qPainter.drawLine(0, -self.h/2, 0, self.h/2)
+    def paint(self, qPainter, qStyleOptionGraphicsItem, qWidget):
+        c = hoverColor if self.isUnderMouse() else selColor
+        # qPainter.setPen(QPen(hoverColor, 3, Qt.SolidLine))
+        # qPainter.drawLine(-self.w/2, 0, self.w/2, 0)
+        # qPainter.drawLine(0, -self.h/2, 0, self.h/2)
+
+        qPainter.fillRect(self.boundingRect(), c)
 
     def dragMove(self, delta):
         self.on_drag(delta)
@@ -177,6 +190,8 @@ class RectSelectionItem(QGraphicsItem):
         self.color = markColor
         self.padding = 16
         self.constr = constr
+
+        self.setAcceptHoverEvents(True)
 
         down = ExtensionArrow('down', lambda v: self.setRect(self.x, self.y, self.width, self.height+v))
         down.setParentItem(self)
@@ -236,7 +251,7 @@ class RectSelectionItem(QGraphicsItem):
 
         self.size = QSizeF(max.x()-min.x(), max.y()-min.y())
 
-        self.posHandle.setPos(self.size.width()/2, self.size.height()/2)
+        self.posHandle.setPos(-self.posHandle.w / 2 + self.size.width()/2, -self.posHandle.h / 2 + self.size.height()/2)
 
         x = min.x()
         y = min.y()
@@ -289,9 +304,10 @@ class RectSelectionItem(QGraphicsItem):
 
         #force redraw on child selection changed
         if need_redraw:
-            p = self.pos()
-            self.setPos(p.x()-1, p.y()-1)
-            self.setPos(p.x(), p.y())
+            self.update(self.boundingRect())
+            # p = self.pos()
+            # self.setPos(p.x()-1, p.y()-1)
+            # self.setPos(p.x(), p.y())
 
     def dragMove(self, delta):
         pass
@@ -353,7 +369,6 @@ class RectNumberedItem(RectSelectionItem):
         RectSelectionItem.__init__(self, size, constr)
         self.number = AnchoredNumberItem(numberProvider, constr, self.positionNumber)
         self.number.setParentItem(self)
-        self.moved = False
         self.activeShift = 0
         self.numberShift = -5
 
@@ -377,11 +392,10 @@ class RectNumberedItem(RectSelectionItem):
     def activeNumber(self, apart):
         self.activeShift = 0 if not apart else self.number.size / 2
         self.positionNumber()
-        self.moved = apart
 
-        #force redraw
-        self.setPos(self.x-1, self.y-1)
-        self.setPos(self.x+1, self.y+1)
+        # #force redraw
+        # self.setPos(self.x-1, self.y-1)
+        # self.setPos(self.x+1, self.y+1)
 
 
     def clone(self):
