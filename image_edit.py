@@ -1,13 +1,38 @@
-
-
 from pyqode.qt.QtCore import Qt, QSizeF, QRectF, QPointF, Signal
 from pyqode.qt.QtWidgets import QGraphicsView, QGraphicsItem, QPen, QColor, QPainter, QGraphicsScene, QPixmap, \
     QGraphicsLineItem, QPainterPath, QGraphicsRectItem, QGraphicsPixmapItem, QMainWindow, QWidget, QPushButton, \
     QCheckBox, QSpinBox, QLineEdit, QHBoxLayout, QVBoxLayout, QStyle, QIntValidator, QLabel
 
-
 markColor = QColor(100, 136, 255)
 selColor = QColor(80, 110, 200)
+hoverColor = QColor(255, 0, 0)
+
+class Corner:
+    def __init__(self, toLeft, toRight, toDown, toUp):
+        self.toLeft = toLeft
+        self.toRight = toRight
+        self.toUp = toUp
+        self.toDown = toDown
+
+
+class CornerPosition:
+    top_left = Corner(None, None, None, None)
+    top_right = Corner(None, None, None, None)
+    bottom_right = Corner(None, None, None, None)
+    bottom_left = Corner(None, None, None, None)
+
+
+CornerPosition.top_left.toRight = CornerPosition.top_right
+CornerPosition.top_left.toDown = CornerPosition.bottom_left
+
+CornerPosition.top_right.toLeft = CornerPosition.top_left
+CornerPosition.top_right.toDown = CornerPosition.bottom_right
+
+CornerPosition.bottom_left.toRight = CornerPosition.bottom_right
+CornerPosition.bottom_left.toUp = CornerPosition.top_left
+
+CornerPosition.bottom_right.toLeft = CornerPosition.bottom_left
+CornerPosition.bottom_right.toUp = CornerPosition.top_right
 
 
 class NumberItem(QGraphicsItem):
@@ -91,11 +116,20 @@ class ExtensionArrow(QGraphicsRectItem):
         self.orientation = orientation
 
         image.setFlag(QGraphicsItem.ItemIsSelectable, False)
+
+        self.image = image
+
         self.setFlag(QGraphicsItem.ItemIsSelectable)
         # self.setFlag(QGraphicsItem.ItemIsFocusable)
 
     def paint(self, qPainter, qStyleOptionGraphicsItem, qWidget):
         # qPainter.fillRect(2, 2, 28, 18, QColor(100, 136, 255, 100))
+
+        if self.isUnderMouse() or self.image.isUnderMouse():
+            self.setBrush(hoverColor)
+        else:
+            self.setBrush(QColor(100, 136, 255, 100))
+
         QGraphicsRectItem.paint(self, qPainter, qStyleOptionGraphicsItem, qWidget)
 
     def dragMove(self, delta):
@@ -107,6 +141,31 @@ class ExtensionArrow(QGraphicsRectItem):
             self.on_drag(-delta.x())
         else:
             self.on_drag(delta.x())
+
+
+class MoveHandle(QGraphicsItem):
+
+    def __init__(self, on_drag, w=12, h=12):
+        QGraphicsItem.__init__(self)
+        self.w = w
+        self.h = h
+        self.on_drag = on_drag
+        self.setFlag(QGraphicsItem.ItemIsSelectable, True)
+
+    def boundingRect(self, *args, **kwargs):
+        return QRectF(0, 0, self.w, self.h)
+
+    def paint(self, qPainter, qStyleOptionGraphicsItem, qWidget):
+        if self.isUnderMouse():
+            qPainter.setPen(QPen(hoverColor, 3, Qt.SolidLine))
+        else:
+            qPainter.setPen(QPen(selColor, 3, Qt.SolidLine))
+
+        qPainter.drawLine(-self.w/2, 0, self.w/2, 0)
+        qPainter.drawLine(0, -self.h/2, 0, self.h/2)
+
+    def dragMove(self, delta):
+        self.on_drag(delta)
 
 
 class RectSelectionItem(QGraphicsItem):
@@ -131,10 +190,16 @@ class RectSelectionItem(QGraphicsItem):
         right = ExtensionArrow('right', lambda v: self.setRect(self.x, self.y, self.width+v, self.height))
         right.setParentItem(self)
 
+        self.posHandle = MoveHandle(lambda d: self.setPos(self.constr(self.pos() + d)))
+        self.posHandle.setParentItem(self)
+
         self.arrows = [left, right, up, down]
         self.setRect(0, 0, size.width(), size.height())
 
-        for a in self.arrows:
+        self.activeItems = [self.posHandle]
+        self.activeItems.extend(self.arrows)
+
+        for a in self.activeItems:
             a.setVisible(False)
 
     def dragUp(self, v):
@@ -170,6 +235,8 @@ class RectSelectionItem(QGraphicsItem):
         max = self.constr(QPointF(x+w,y+h))
 
         self.size = QSizeF(max.x()-min.x(), max.y()-min.y())
+
+        self.posHandle.setPos(self.size.width()/2, self.size.height()/2)
 
         x = min.x()
         y = min.y()
@@ -210,10 +277,10 @@ class RectSelectionItem(QGraphicsItem):
 
         sel = self.isSelected()
         if not sel:
-            sel = any([a.isSelected() for a in self.arrows])
+            sel = any([a.isSelected() for a in self.activeItems])
 
         need_redraw = False
-        for a in self.arrows:
+        for a in self.activeItems:
             if not sel and a.isVisible():
                 need_redraw = True
             a.setVisible(sel)
@@ -226,13 +293,9 @@ class RectSelectionItem(QGraphicsItem):
             self.setPos(p.x()-1, p.y()-1)
             self.setPos(p.x(), p.y())
 
-        # if self.isSelected():
-        #     path = QPainterPath()
-        #     path.addEllipse(self.width-self.padding, self.height-self.padding, 2*self.padding, 2*self.padding)
-        #     qPainter.fillPath(path, QColor(236, 208, 137))
-
     def dragMove(self, delta):
-        self.setPos(self.constr(self.pos() + delta))
+        pass
+        # self.setPos(self.constr(self.pos() + delta))
 
     def clone(self):
         item = RectSelectionItem(self.size, self.constr)
@@ -252,6 +315,77 @@ class EllipseSelectionItem(RectSelectionItem):
 
         def clone(self):
             return EllipseSelectionItem(self.size, self.constr)
+
+
+class AnchoredNumberItem(NumberItem):
+
+    dragStrength = 50
+
+    def __init__(self, numberProvider, constr, on_position_change, corner=CornerPosition.top_left):
+        NumberItem.__init__(self, numberProvider, constr)
+        self.corner = corner
+        self._change_trigger_ = on_position_change
+
+    def dragMove(self, delta):
+        horizontal = abs(delta.x()) > abs(delta.y())
+
+        corner = None
+
+        if horizontal and delta.x() > AnchoredNumberItem.dragStrength:
+            corner = self.corner.toRight
+        elif horizontal and delta.x() < -AnchoredNumberItem.dragStrength:
+            corner = self.corner.toLeft
+        elif not horizontal and delta.y() > AnchoredNumberItem.dragStrength:
+            corner = self.corner.toDown
+        elif not horizontal and delta.y() < -AnchoredNumberItem.dragStrength:
+            corner = self.corner.toUp
+
+        if corner is not None:
+            self.corner = corner
+            self._change_trigger_()
+
+    # def setSelected(self, *args, **kwargs):
+    #     NumberItem.setSelected()
+
+
+class RectNumberedItem(RectSelectionItem):
+    def __init__(self, size, constr, numberProvider):
+        RectSelectionItem.__init__(self, size, constr)
+        self.number = AnchoredNumberItem(numberProvider, constr, self.positionNumber)
+        self.number.setParentItem(self)
+        self.moved = False
+        self.activeShift = 0
+        self.numberShift = -5
+
+        self.positionNumber()
+
+    def paintItem(self, qPainter, selected):
+        self.activeNumber(selected)
+        RectSelectionItem.paintItem(self, qPainter, selected)
+
+    def positionNumber(self):
+        s = self.activeShift + self.numberShift
+        if self.number.corner == CornerPosition.top_left:
+            self.number.setPos(-self.number.size-s, -self.number.size-s)
+        elif self.number.corner == CornerPosition.top_right:
+            self.number.setPos(self.width+s, -self.number.size-s)
+        elif self.number.corner == CornerPosition.bottom_left:
+            self.number.setPos(-self.number.size-s, self.height+s)
+        else:
+            self.number.setPos(self.width+s, self.height+s)
+
+    def activeNumber(self, apart):
+        self.activeShift = 0 if not apart else self.number.size / 2
+        self.positionNumber()
+        self.moved = apart
+
+        #force redraw
+        self.setPos(self.x-1, self.y-1)
+        self.setPos(self.x+1, self.y+1)
+
+
+    def clone(self):
+        return RectNumberedItem(self.size, self.constr, self.number.numberProvider)
 
 
 class PosConstraint:
@@ -369,6 +503,8 @@ class ImageScene(QGraphicsScene):
     def addEllipseElement(self):
         return self._add_and_position_element(EllipseSelectionItem(QSizeF(50, 50), self.posConstr))
 
+    def addNumberedRectElement(self, numberProvider):
+        return self._add_and_position_element(RectNumberedItem(QSizeF(100, 50), self.posConstr, numberProvider))
 
     def duplicateSelection(self):
         newEl = [e.clone() for e in self.selectedElements()]
@@ -495,6 +631,11 @@ class EditImageWindow(QMainWindow):
         add_number.setIcon(icons.get('add_number'))
         add_number.clicked.connect(lambda: self.scene.addNumberElement(self))
 
+        add_numbered_rect = QPushButton()
+        add_numbered_rect.setToolTip('Add numbered rectangle')
+        add_numbered_rect.setIcon(icons.get('add_numbered_rect'))
+        add_numbered_rect.clicked.connect(lambda: self.scene.addNumberedRectElement(self))
+
         duplicate_button = QPushButton()
         duplicate_button.setToolTip('Duplicate')
         duplicate_button.setIcon(icons.get('duplicate'))
@@ -529,6 +670,7 @@ class EditImageWindow(QMainWindow):
         lt.addWidget(add_rect)
         lt.addWidget(add_ellipse)
         lt.addWidget(add_number)
+        lt.addWidget(add_numbered_rect)
         lt.addSpacing(20)
         lt.addWidget(duplicate_button)
         lt.addSpacing(20)
