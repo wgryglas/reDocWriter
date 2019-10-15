@@ -304,10 +304,10 @@ class RectSelectionItem(QGraphicsItem):
 
         #force redraw on child selection changed
         if need_redraw:
-            self.update(self.boundingRect())
-            # p = self.pos()
-            # self.setPos(p.x()-1, p.y()-1)
-            # self.setPos(p.x(), p.y())
+            # self.update(self.boundingRect())
+            p = self.pos()
+            self.setPos(p.x()-1, p.y()-1)
+            self.setPos(p.x(), p.y())
 
     def dragMove(self, delta):
         pass
@@ -396,6 +396,7 @@ class RectNumberedItem(RectSelectionItem):
         # #force redraw
         # self.setPos(self.x-1, self.y-1)
         # self.setPos(self.x+1, self.y+1)
+        self.scene().update()
 
 
     def clone(self):
