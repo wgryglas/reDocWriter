@@ -1,0 +1,11 @@
+#! /bin/bash
+
+# script building single executable  (2 execs while first is than bundled inside the second one)
+# it uses PyInstaller tool and predefined *.spec files for building single executable
+# Note that in those configs we point directly to cwd, so any pyinstaller command must be run from root dir
+
+rm -rf build dist
+
+pyinstaller server_bundle_config.spec
+
+pyinstaller app_bundle_config.spec
