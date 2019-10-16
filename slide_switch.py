@@ -149,13 +149,13 @@ class QSlideSwitch(QAbstractButton):
         self.repaint()
 
 
-if __name__ == '__main__':
-
-    import sys
-    app = QApplication(sys.argv)
-
-    switcher = QSlideSwitch()
-    switcher.setCheckable(True)
-    switcher.show()
-
-    sys.exit(app.exec_())
+# if __name__ == '__main__':
+#
+#     import sys
+#     app = QApplication(sys.argv)
+#
+#     switcher = QSlideSwitch()
+#     switcher.setCheckable(True)
+#     switcher.show()
+#
+#     sys.exit(app.exec_())

@@ -1,5 +1,32 @@
 from git import Repo
 
+
+class _DummyUrls_:
+    def __init__(self):
+        self.urls = self
+
+    # def __next__(self):
+    #     return self.next()
+
+    def next(self):
+        return 'git:wgryglas'
+
+    def __str__(self):
+        return self.next()
+
+
+class _DummyRepo_:
+    def __init__(self):
+
+        self.__dict__ = {
+            'remotes': [_DummyUrls_()],
+            'working_tree_dir': '/home/wgryglas/Code/Python/pelicanReDoc',
+            'bare': False,
+            'is_dirty': lambda: False,
+            'undtracted_files': [],
+        }
+
+
 class GitRepository:
     def __init__(self, local_path):
         self._repo_ = Repo(local_path)

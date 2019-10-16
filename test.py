@@ -50,17 +50,17 @@ from core import Session
 # print session.substituteTemplatText(emptyFileTemplate(), '/home/wgryglas/python/pelicanDoc/content/test.rst')
 
 
-import sys
-from pyqode.qt.QtCore import QRect
-from pyqode.qt.QtGui import QApplication
-from screenshot_selection import WindowRegionSelector
-
-def main():
-    app = QApplication(sys.argv)
-    ex = WindowRegionSelector(showRect=QRect(500, 300, 200, 200), hideOnClose=False)
-    ex.show()
-    sys.exit(app.exec_())
-
-
-if __name__ == '__main__':
-    main()
+# import sys
+# from pyqode.qt.QtCore import QRect
+# from pyqode.qt.QtGui import QApplication
+# from screenshot_selection import WindowRegionSelector
+#
+# def main():
+#     app = QApplication(sys.argv)
+#     ex = WindowRegionSelector(showRect=QRect(500, 300, 200, 200), hideOnClose=False)
+#     ex.show()
+#     sys.exit(app.exec_())
+#
+#
+# if __name__ == '__main__':
+#     main()

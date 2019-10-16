@@ -190,11 +190,12 @@ class WindowRegionSelector(QMainWindow):
 
     def toggleFullScreen(self):
         if self.window().isMaximized():
-            self.window().showNormal()
+            self.window().setWindowState(Qt.WindowNoState)
             self.maximizeButton.setText('Full Screen')
             self.editWidget.setVisible(True)
         else:
-            self.window().showMaximized()
+            #self.window().showMaximized()
+            self.window().setWindowState(Qt.WindowMaximized)
             self.maximizeButton.setText('Part of Screen')
             self.editWidget.setVisible(False)
 

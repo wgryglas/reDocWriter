@@ -159,12 +159,16 @@ class ImagesPanel(QWidget):
         thread.start(paths)
 
     def moveWindowBack(self):
-        self.window().activateWindow()
-        self.window().raise_()
+        #self.window().activateWindow()
+        #self.window().raise_()
+        self.window().setWindowState(Qt.WindowActive)
+        self.window().setWindowState(Qt.WindowMaximized)
+        # self.window().setWindowState(Qt.Window)
 
 
     def startScreenshot(self):
-        self.window().showMinimized()
+        #self.window().showMinimized()
+        self.window().setWindowState(Qt.WindowMinimized)
         self.screenshot_selector.show()
 
     def takeScreenshot(self, region=None):

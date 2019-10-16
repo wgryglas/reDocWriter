@@ -154,4 +154,10 @@ fabric.properties
 # Output directory for pelican docs:
 /output/
 
+
+#######################################################
+# Project specific
+#######################################################
 test.py
+!app_bundle_config.spec
+!server_bundle_config.spec

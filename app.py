@@ -1,6 +1,11 @@
 import os
 import sys
-from enum import Enum
+
+# import multiprocessing
+# # Pyinstaller fix (there was a problem with multiple windows opening up during soft run)
+# # does not seems to work :(
+# multiprocessing.freeze_support()
+
 os.environ['QT_API'] = 'PySide'
 from pyqode.qt.QtCore import *
 from pyqode.qt.QtWidgets import *
@@ -10,6 +15,9 @@ from pyqode.qt.QtWidgets import *
 # from images_panel import ImagesPanel
 # from sources_panel import SourcesTree
 # from core import Session
+
+#sys.__dict__['frozen'] = True
+
 from session_panel import SessionPanel
 from launcher_panel import InitialPanel
 from git_repository import GitRepository
@@ -46,8 +54,6 @@ class MainWindow(QWidget):
 
     def start_session(self, root_path):
 
-        self.launcher.hide()
-
         if self.session:
             self.session.setParent(None)
             del self.session
@@ -69,8 +75,12 @@ class MainWindow(QWidget):
 
         self.main_layout.addWidget(self.session)
 
-        if not self.isVisible():
-            self.show()
+        self.launcher.hide()
+        self.launcher.setParent(None)
+        del self.launcher
+
+        # if not self.isVisible():
+        #     self.setVisible(True)
 
     def set_color_scheme(self, scheme):
         if scheme == ColorScheme.defualt:
@@ -102,7 +112,9 @@ class MainWindow(QWidget):
 
 
 def main():
-    from app_settings import AppSettings
+    import logging
+    logging.basicConfig(filename='errors.log', level=logging.ERROR)
+    # using logger is necessary to debug backend server which runs as separate process
 
     app = QApplication(sys.argv)
     w = MainWindow(app)
@@ -110,7 +122,8 @@ def main():
     # w.start_session(path)
     sys.exit(app.exec_())
 
+
 ####################################################################
 if __name__ == "__main__":
+    print hasattr(sys, 'frozen')
     main()
-

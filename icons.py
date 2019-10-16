@@ -3,6 +3,9 @@ from pyqode.qt.QtWidgets import QPixmap, QIcon
 import os
 
 
+# dir = resource_filename('icons', 'assets' + os.sep + 'icons')
+
+
 _icons_path_ = os.path.join(os.path.dirname(os.path.abspath(__file__))) + os.sep + 'assets' + os.sep + 'icons'
 
 

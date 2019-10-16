@@ -183,18 +183,22 @@ class InitialPanel(QWidget):
         launcher = LauncherPanel(self.settings)
         launcher.root_path_selected.connect(self.on_root_selection.emit)
         self.layout().addWidget(launcher)
-        self.welcome.hide()
+
+        if self.welcome.isVisible():
+            self.welcome.setParent(None)
+            del self.welcome
+
         self.on_launcher_show.emit()
 
 
 
 
-if __name__ == "__main__":
-    import sys
-    from app_settings import AppSettings
-
-    app = QApplication(sys.argv)
-    system = SystemSettings()
-    panel = InitialPanel(system)
-    panel.showMaximized()
-    sys.exit(app.exec_())
+# if __name__ == "__main__":
+#     import sys
+#     from app_settings import AppSettings
+#
+#     app = QApplication(sys.argv)
+#     system = SystemSettings()
+#     panel = InitialPanel(system)
+#     panel.showMaximized()
+#     sys.exit(app.exec_())

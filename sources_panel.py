@@ -279,22 +279,22 @@ class SourcesTree(QWidget):
                 return
 
 
-if __name__ == '__main__':
-    import sys
-    from pyqode.qt.QtWidgets import QApplication
-
-    def displ(s):
-        print s
-
-    class SessionMokup:
-        def __init__(self):
-            self.active_full_path = '/home/wgryglas/python/pelicanDoc/content/test.rst'
-
-    app = QApplication(sys.argv)
-
-    p = AddNewTemplatePanel(SessionMokup())
-    p.populateButtons(['Empty', 'Tutorial', 'Article'])
-    p.show()
-    p.template_selected.connect(displ)
-
-    sys.exit(app.exec_())
+# if __name__ == '__main__':
+#     import sys
+#     from pyqode.qt.QtWidgets import QApplication
+#
+#     def displ(s):
+#         print s
+#
+#     class SessionMokup:
+#         def __init__(self):
+#             self.active_full_path = '/home/wgryglas/python/pelicanDoc/content/test.rst'
+#
+#     app = QApplication(sys.argv)
+#
+#     p = AddNewTemplatePanel(SessionMokup())
+#     p.populateButtons(['Empty', 'Tutorial', 'Article'])
+#     p.show()
+#     p.template_selected.connect(displ)
+#
+#     sys.exit(app.exec_())

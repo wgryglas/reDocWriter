@@ -727,17 +727,17 @@ class EditImageWindow(QMainWindow):
             event.accept()
 
 
-def main():
-    from pyqode.qt.QtWidgets import QApplication
-    import sys
-
-    app = QApplication(sys.argv)
-    win = EditImageWindow("/home/wgryglas/test-edit.png")
-    win.show()
-
-
-    sys.exit(app.exec_())
-
-
-if __name__ == '__main__':
-    main()
+# def main():
+#     from pyqode.qt.QtWidgets import QApplication
+#     import sys
+#
+#     app = QApplication(sys.argv)
+#     win = EditImageWindow("/home/wgryglas/test-edit.png")
+#     win.show()
+#
+#
+#     sys.exit(app.exec_())
+#
+#
+# if __name__ == '__main__':
+#     main()

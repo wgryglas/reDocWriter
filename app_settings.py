@@ -245,7 +245,6 @@ class SystemSettings(PropertiesGetDelegator):
         return [p + sep + f for f in files]
 
 
-
 class Linux:
     def __init__(self):
         from os.path import expanduser
