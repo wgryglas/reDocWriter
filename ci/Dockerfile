@@ -1,6 +1,6 @@
 FROM ubuntu
 
-RUN apt install pip
+RUN apt install python-pip
 RUN pip install --no-cache-dir --upgrade setuptools
 RUN pip install --no-cache-dir --upgrade docutils
 RUN pip install --no-cache-dir --upgrade gitpython
