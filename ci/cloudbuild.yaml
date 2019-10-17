@@ -6,7 +6,7 @@ steps:
 
   - name: 'gcr.io/cloud-builders/docker'
     args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/redocwriter-build', '.' ]
-    dir: 'ci'
+    dir: 'reDocWriter/ci'
 
 images:
   - 'gcr.io/$PROJECT_ID/redocwriter-build'
