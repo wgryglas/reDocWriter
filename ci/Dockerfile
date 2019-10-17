@@ -1,4 +1,4 @@
-FROM centos6
+FROM ubuntu:18.04
 
 RUN apt-get -q update
 RUN apt-get install -q -y python
