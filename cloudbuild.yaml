@@ -14,7 +14,7 @@ steps:
 artifacts:
   objects:
     location: 'gs://download.wgryglas.pl/reDocWriter'
-    paths: ['dist/reDocWriter']
+    paths: ['reDocWriter/dist/reDocWriter']
 
 substitutions:
   _BRANCH: master
