@@ -1,4 +1,4 @@
-FROM centos-6
+FROM ubuntu
 
 RUN pip install --no-cache-dir --upgrade setuptools
 RUN pip install --no-cache-dir --upgrade docutils
