@@ -1,4 +1,4 @@
-FROM gcr.io/cloud-builders/gcloud
+FROM centos-6
 
 RUN pip install --no-cache-dir --upgrade setuptools
 RUN pip install --no-cache-dir --upgrade docutils
