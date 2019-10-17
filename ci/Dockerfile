@@ -1,9 +1,9 @@
-FROM ubuntu
+FROM centos6
 
 RUN apt-get -q update
 RUN apt-get install -q -y python
 RUN apt-get install -q -y python-pip
-RUN apt-get install -q -y cmake
+#RUN apt-get install -q -y cmake
 RUN pip install --no-cache-dir --upgrade setuptools
 RUN pip install --no-cache-dir --upgrade docutils
 RUN pip install --no-cache-dir --upgrade gitpython
