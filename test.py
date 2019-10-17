@@ -3,6 +3,8 @@
 from git_repository import GitRepository
 from core import Session
 
+
+
 # repo = GitRepository("/home/wgryglas/Code/Python/pelicanReDoc")
 # repo = GitRepository("/home/wgryglas/python/pelicanDoc")
 
