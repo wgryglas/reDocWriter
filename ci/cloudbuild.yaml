@@ -1,5 +1,9 @@
 steps:
-- name: 'gcr.io/cloud-builders/docker'
-  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/redocwriter-build', '.' ]
+  # use clone from github
+  - name: gcr.io/cloud-builders/git
+    args: ['clone', '-b', '${_BRANCH}', '--single-branch', '--depth', '1', 'https://github.com/wgryglas/reDocWriter.git']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/redocwriter-build', '.' ]
 images:
-- 'gcr.io/$PROJECT_ID/redocwriter-build'
+  - 'gcr.io/$PROJECT_ID/redocwriter-build'
