@@ -13,7 +13,7 @@ steps:
 
 artifacts:
   objects:
-    location: 'gs://${PROJECT_ID}/reDocWriter'
+    location: 'gs://download.wgryglas.pl/reDocWriter'
     paths: ['dist/reDocWriter']
 
 substitutions:
