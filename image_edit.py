@@ -46,7 +46,7 @@ class NumberItem(QGraphicsItem):
         self.margin = 0
         self.constr = constr
 
-    def dragMove(self, delta):
+    def dragMove(self, delta, suggestedPosition):
         self.setPos(self.constr(self.pos() + delta))
 
     def boundingRect(self, *args, **kwargs):
@@ -135,7 +135,7 @@ class ExtensionArrow(QGraphicsRectItem):
 
         QGraphicsRectItem.paint(self, qPainter, qStyleOptionGraphicsItem, qWidget)
 
-    def dragMove(self, delta):
+    def dragMove(self, delta, suggestedPosition):
         if self.orientation == 'up':
             self.on_drag(-delta.y())
         elif self.orientation == 'down':
@@ -177,8 +177,8 @@ class MoveHandle(QGraphicsItem):
 
         qPainter.fillRect(self.boundingRect(), c)
 
-    def dragMove(self, delta):
-        self.on_drag(delta)
+    def dragMove(self, delta, suggestedPosition):
+        self.on_drag(delta, suggestedPosition)
 
 
 class RectSelectionItem(QGraphicsItem):
@@ -309,7 +309,7 @@ class RectSelectionItem(QGraphicsItem):
             self.setPos(p.x()-1, p.y()-1)
             self.setPos(p.x(), p.y())
 
-    def dragMove(self, delta):
+    def dragMove(self, delta, suggestedPosition):
         pass
         # self.setPos(self.constr(self.pos() + delta))
 
@@ -342,7 +342,7 @@ class AnchoredNumberItem(NumberItem):
         self.corner = corner
         self._change_trigger_ = on_position_change
 
-    def dragMove(self, delta):
+    def dragMove(self, delta, suggestedPosition):
         horizontal = abs(delta.x()) > abs(delta.y())
 
         corner = None
@@ -425,6 +425,60 @@ class PosConstraint:
         return QPointF(x, y)
 
 
+class DragStyle:
+    def __init__(self):
+        self.start = QPointF()
+        self.pos = QPointF()
+        self.startItemsPosition = dict()
+
+    def isValid(self, selectedItems, keyModifiers, buttons):
+        """
+        :param selectedItems:
+        :param keys:
+        :param buttons:
+        :return: True if is applicable to current context
+        """
+        raise NotImplementedError()
+
+    def _filterItems_(self, selectedItems, keys, buttons):
+        return selectedItems
+
+    def initDrag(self, selectedItems, keys, buttons):
+        """
+        Inits current drag, possibly modifies list of object that should be processed
+        :param selectedItems:
+        :param keys:
+        :param buttons:
+        :return: a new list of items that would be affected by drag events
+        """
+        filtered = self._filterItems_(selectedItems, keys, buttons)
+        for item in filtered:
+            self.startItemsPosition[item] = item.pos()
+        return filtered
+
+    def setStartPoint(self, pnt):
+        self.start = pnt
+
+    def setMovePoint(self, pnt):
+        self.pos = pnt
+
+    def applyDrag(self, items):
+        raise NotImplementedError()
+
+    def finish(self):
+        self.startItemsPosition = dict()
+
+
+class DefaultDrag(DragStyle):
+    def isValid(self, selectedItems, keyModifiers, buttons):
+        return len(selectedItems) == 1 and len(keyModifiers) == 0 and len(buttons) == 1 and buttons[0] == Qt.LeftButton
+
+    def applyDrag(self, items):
+        delta = self.pos - self.start
+        for item in items:
+            item.dragMove(delta)
+
+
 class ImageScene(QGraphicsScene):
 
     def __init__(self, imageUrl=None):
@@ -444,6 +498,11 @@ class ImageScene(QGraphicsScene):
             self.setImage(imageUrl)
 
         self.userItems = []
+
+        self.dragStyles = [DefaultDrag()]
+
+        self.dragItems = []
+
 
     def selectedElements(self):
         return [item for item in self.selectedItems() if item.parentItem() == self.imgItem]
@@ -533,10 +592,16 @@ class ImageScene(QGraphicsScene):
         QGraphicsScene.mousePressEvent(self, e)
         self.recentPos = e.pos()
         self.draggingItems = dict()
-        if len(self.selectedItems()):
-            self.pressPos = e.pos()
-            for item in self.selectedItems():
-                self.draggingItems[item] = item.pos()
+
+        selItems = self.selectedItems()
+
+        styles = filter(lambda e: e.isValid(selItems, e.modifiers(), e.buttons()), self.dragStyles)
+        if len(styles):
+            raise ValueError('More then single drag style detected')
+        style = styles[0]
+
+        self.dragItems = style.initDrag(selItems, e.modifiers(), e.buttons())
+
 
     def mouseReleaseEvent(self, e):
         QGraphicsScene.mouseReleaseEvent(self, e)
@@ -547,7 +612,7 @@ class ImageScene(QGraphicsScene):
         if self.pressPos:
             p = e.pos()
             delta = QPointF(p.x() - self.pressPos.x(), p.y() - self.pressPos.y())
-            delta = self.posConstr(delta)
+            #delta = self.posConstr(delta)
 
             #drag multiple only on root items, otherwise extra handles would be triggered
             items = self.draggingItems.keys()
