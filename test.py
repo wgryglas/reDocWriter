@@ -66,3 +66,9 @@ from core import Session
 #
 # if __name__ == '__main__':
 #     main()
+
+
+# data = np.array([t, x]).T
+
+
+# np.savetxt('/home/wgryglas/points.csv', data, delimiter=',', newline='\n')

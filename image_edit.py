@@ -283,7 +283,9 @@ class RectSelectionItem(QGraphicsItem):
         return QRectF(-self.padding, -self.padding, self.size.width()+2*self.padding, self.size.height()+2*self.padding)
 
     def paintItem(self, qPainter, selected):
-        qPainter.setPen(QPen(selColor if selected else markColor, self.lineWidth, Qt.SolidLine))
+        qPainter.setRenderHints(QPainter.Antialiasing, False)
+        qPainter.setRenderHints(QPainter.HighQualityAntialiasing, False)
+        qPainter.setPen(QPen(selColor if selected else markColor, self.lineWidth, Qt.SolidLine, Qt.SquareCap, Qt.MiterJoin))
         qPainter.drawRect(0, 0, self.width, self.height)
 
     def paint(self, qPainter, qStyleOptionGraphicsItem, qWidget):
