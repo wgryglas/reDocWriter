@@ -1,20 +1,22 @@
 steps:
-# use clone from github
-  - name: gcr.io/cloud-builders/git
-    args: ['clone', '-b', '${_BRANCH}', '--single-branch', '--depth', '1', 'https://github.com/wgryglas/reDocWriter.git']
+  # use clone from github
+  # No need to clone, mirrored repo is automatically pulled into workspace directory
+  #- name: gcr.io/cloud-builders/git
+  #  args: ['clone', '-b', '${_BRANCH}', '--single-branch', '--depth', '1', 'https://github.com/wgryglas/reDocWriter.git']
 
   - name: gcr.io/${PROJECT_ID}/redocwriter-build:latest
     args: ["server_bundle_config.spec"]
-    dir: reDocWriter
+    #dir: reDocWriter
 
   - name: gcr.io/${PROJECT_ID}/redocwriter-build:latest
     args: ["app_bundle_config.spec"]
-    dir: reDocWriter
+    #dir: reDocWriter
 
 artifacts:
   objects:
     location: 'gs://download.wgryglas.pl/reDocWriter'
-    paths: ['reDocWriter/dist/reDocWriter']
+    paths: ['dist/reDocWriter']
+    #paths: ['reDocWriter/dist/reDocWriter']
 
 substitutions:
   _BRANCH: master

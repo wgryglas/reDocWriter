@@ -205,7 +205,7 @@ class RectSelectionItem(QGraphicsItem):
         right = ExtensionArrow('right', lambda v: self.setRect(self.x, self.y, self.width+v, self.height))
         right.setParentItem(self)
 
-        self.posHandle = MoveHandle(lambda d: self.setPos(self.constr(self.pos() + d)))
+        self.posHandle = MoveHandle(lambda delta, sugessted: self.setPos(self.constr(self.pos() + delta)))
         self.posHandle.setParentItem(self)
 
         self.arrows = [left, right, up, down]
@@ -473,7 +473,7 @@ class DragStyle:
 
 class DefaultDrag(DragStyle):
     def isValid(self, selectedItems, keyModifiers, buttons):
-        return len(selectedItems) == 1 and len(keyModifiers) == 0 and len(buttons) == 1 and buttons[0] == Qt.LeftButton
+        return len(selectedItems) == 1 and keyModifiers == Qt.NoModifier and buttons == Qt.LeftButton
 
     def applyDrag(self, items):
         delta = self.pos - self.start
@@ -597,12 +597,17 @@ class ImageScene(QGraphicsScene):
 
         selItems = self.selectedItems()
 
-        styles = filter(lambda e: e.isValid(selItems, e.modifiers(), e.buttons()), self.dragStyles)
-        if len(styles):
+        styles = filter(lambda style: style.isValid(selItems, e.modifiers(), e.buttons()), self.dragStyles)
+
+        if len(styles) > 1:
             raise ValueError('More then single drag style detected')
+        elif len(styles) == 0:
+            return
+
         style = styles[0]
 
         self.dragItems = style.initDrag(selItems, e.modifiers(), e.buttons())
+        self.pressPos = e.pos()
 
 
     def mouseReleaseEvent(self, e):
@@ -617,12 +622,13 @@ class ImageScene(QGraphicsScene):
             #delta = self.posConstr(delta)
 
             #drag multiple only on root items, otherwise extra handles would be triggered
-            items = self.draggingItems.keys()
+            #items = self.draggingItems.keys()
+            items = self.dragItems
             if len(self.draggingItems) > 1:
-                items = filter(lambda i: i.parentItem() == self.imgItem, self.draggingItems.keys())
+                items = filter(lambda i: i.parentItem() == self.imgItem, items)
 
             for item in items:
-                item.dragMove(delta)
+                item.dragMove(delta, self.pressPos + delta)
 
     def renderToFile(self, path):
         from pyqode.qt.QtGui import QImage
@@ -794,17 +800,17 @@ class EditImageWindow(QMainWindow):
             event.accept()
 
 
-# def main():
-#     from pyqode.qt.QtWidgets import QApplication
-#     import sys
-#
-#     app = QApplication(sys.argv)
-#     win = EditImageWindow("/home/wgryglas/test-edit.png")
-#     win.show()
-#
-#
-#     sys.exit(app.exec_())
-#
-#
-# if __name__ == '__main__':
-#     main()
+def main():
+    from pyqode.qt.QtWidgets import QApplication
+    import sys
+
+    app = QApplication(sys.argv)
+    win = EditImageWindow("/home/wgryglas/test-edit.png")
+    win.show()
+
+
+    sys.exit(app.exec_())
+
+
+if __name__ == '__main__':
+    main()
