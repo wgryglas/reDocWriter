@@ -1,5 +1,5 @@
 from pyqode.qt.QtCore import QSize, Qt, Signal, QFile, QIODevice, QTimer
-from pyqode.qt.QtGui import QIcon, QColor, QPalette, QApplication
+from pyqode.qt.QtGui import QIcon, QApplication
 from pyqode.qt.QtWidgets import QWidget, QListWidget, QListWidgetItem, QVBoxLayout, QPushButton, QHBoxLayout, \
     QSizePolicy, QStyle, QFileDialog, QFrame, QPixmap
 from uitreads import LoadPixmaps, DeleteFiles
@@ -111,7 +111,7 @@ class ImagesPanel(QWidget):
 
     def _open_edit_window_(self):
         path = self.selected_file.full_path
-        from image_edit import EditImageWindow
+        from image_editor.image_edit import EditImageWindow
         win = EditImageWindow(path)
         win.on_saved.connect(lambda: self._session_.update_website())
         win.on_saved.connect(lambda: self.show_source_images(self._session_.active_local_path))

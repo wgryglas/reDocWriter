@@ -1,184 +1,15 @@
-from pyqode.qt.QtCore import Qt, QSizeF, QRectF, QPointF, Signal
+from pyqode.qt.QtCore import Qt, QSizeF, QRectF, QPointF, Signal, QPoint, QRect
 from pyqode.qt.QtWidgets import QGraphicsView, QGraphicsItem, QPen, QColor, QPainter, QGraphicsScene, QPixmap, \
     QGraphicsLineItem, QPainterPath, QGraphicsRectItem, QGraphicsPixmapItem, QMainWindow, QWidget, QPushButton, \
-    QCheckBox, QSpinBox, QLineEdit, QHBoxLayout, QVBoxLayout, QStyle, QIntValidator, QLabel
+    QCheckBox, QSpinBox, QLineEdit, QHBoxLayout, QVBoxLayout, QStyle, QIntValidator, QLabel, QMouseEvent
+
+from rect_postion import *
+from number_item import NumberItem
+from handle_itemes import ExtensionArrow, MoveHandle
 
 markColor = QColor(100, 136, 255)
 selColor = QColor(80, 110, 200)
 hoverColor = QColor(255, 0, 0)
-
-class Corner:
-    def __init__(self, toLeft, toRight, toDown, toUp):
-        self.toLeft = toLeft
-        self.toRight = toRight
-        self.toUp = toUp
-        self.toDown = toDown
-
-
-class CornerPosition:
-    top_left = Corner(None, None, None, None)
-    top_right = Corner(None, None, None, None)
-    bottom_right = Corner(None, None, None, None)
-    bottom_left = Corner(None, None, None, None)
-
-
-CornerPosition.top_left.toRight = CornerPosition.top_right
-CornerPosition.top_left.toDown = CornerPosition.bottom_left
-
-CornerPosition.top_right.toLeft = CornerPosition.top_left
-CornerPosition.top_right.toDown = CornerPosition.bottom_right
-
-CornerPosition.bottom_left.toRight = CornerPosition.bottom_right
-CornerPosition.bottom_left.toUp = CornerPosition.top_left
-
-CornerPosition.bottom_right.toLeft = CornerPosition.bottom_left
-CornerPosition.bottom_right.toUp = CornerPosition.top_right
-
-
-class NumberItem(QGraphicsItem):
-    def __init__(self, numberProvider, constr):
-        QGraphicsItem.__init__(self)
-        self.setFlag(QGraphicsItem.ItemIsSelectable, True)
-        self.setFlag(QGraphicsItem.ItemSendsGeometryChanges, True)
-        self.number = numberProvider.nextNumber()
-        self.numberProvider = numberProvider
-        self.size = 40
-        self.margin = 0
-        self.constr = constr
-
-    def dragMove(self, delta, suggestedPosition):
-        self.setPos(self.constr(self.pos() + delta))
-
-    def boundingRect(self, *args, **kwargs):
-        s = self.size + 2 * self.margin
-        x = - self.margin
-        y = - self.margin
-        return QRectF(x, y, s, s)
-
-    def paint(self, qPainter, qStyleOptionGraphicsItem, qWidget):
-        qPainter.setRenderHint(QPainter.Antialiasing, True)
-        qPainter.setRenderHint(QPainter.TextAntialiasing, True)
-
-        f = qPainter.font()
-        f.setPointSize(16)
-        qPainter.setFont(f)
-
-        x = 0
-        y = 0
-        path = QPainterPath()
-        path.addRoundedRect(x, y, self.size, self.size, self.size, self.size)
-        qPainter.fillPath(path, selColor if self.isSelected() else markColor)
-
-        qPainter.setPen(QColor(255, 255, 255))
-        qPainter.drawText(QRectF(x, y, self.size, self.size), Qt.AlignCenter, str(self.number))
-
-        if self.isSelected():
-            qPainter.setPen(QPen(QColor(100, 100, 100, 100), 1, Qt.DashLine))
-            s = self.size
-            qPainter.drawRect(x, y, s, s)
-
-    def clone(self):
-        item = NumberItem(self.numberProvider, self.constr)
-        p = self.pos()
-        s = self.constr.spacing
-        item.setPos(p.x()+5*s, p.y()+5*s)
-        return item
-
-
-class ExtensionArrow(QGraphicsRectItem):
-
-    def __init__(self, orientation, on_drag):
-        QGraphicsRectItem.__init__(self)
-
-        image = QGraphicsPixmapItem(QPixmap('/home/wgryglas/Code/Python/reDocsEditor/assets/icons/arrow-down.png'))
-        image.setParentItem(self)
-        self.on_drag = on_drag
-
-        if orientation == 'up':
-            self.setRect(QRectF(0, -22, 30, 15))
-            image.rotate(180)
-            image.setPos(24, -5)
-        elif orientation == 'down':
-            self.setRect(QRectF(0, 5, 30, 15))
-            image.setPos(8, 5)
-        elif orientation == 'left':
-            self.setRect(QRectF(-22, 0, 15, 30))
-            image.rotate(90)
-            image.setPos(-5, 8)
-        else:
-            self.setRect(QRectF(5, 0, 15, 30))
-            image.rotate(-90)
-            image.setPos(5, 24)
-
-        self.setBrush(QColor(100, 136, 255, 100))
-        self.setPen(QColor(100, 136, 255, 100))
-
-        self.orientation = orientation
-
-        image.setFlag(QGraphicsItem.ItemIsSelectable, False)
-
-        self.image = image
-
-        self.setFlag(QGraphicsItem.ItemIsSelectable)
-
-        self.setAcceptHoverEvents(True)
-
-        # self.setFlag(QGraphicsItem.ItemIsFocusable)
-
-    def paint(self, qPainter, qStyleOptionGraphicsItem, qWidget):
-        # qPainter.fillRect(2, 2, 28, 18, QColor(100, 136, 255, 100))
-
-        if self.isUnderMouse() or self.image.isUnderMouse():
-            self.setBrush(hoverColor)
-        else:
-            self.setBrush(QColor(100, 136, 255, 100))
-
-        QGraphicsRectItem.paint(self, qPainter, qStyleOptionGraphicsItem, qWidget)
-
-    def dragMove(self, delta, suggestedPosition):
-        if self.orientation == 'up':
-            self.on_drag(-delta.y())
-        elif self.orientation == 'down':
-            self.on_drag(delta.y())
-        elif self.orientation == 'left':
-            self.on_drag(-delta.x())
-        else:
-            self.on_drag(delta.x())
-
-
-class MoveHandle(QGraphicsItem):
-
-    def __init__(self, on_drag, w=12, h=12):
-        QGraphicsItem.__init__(self)
-        self.w = w
-        self.h = h
-        self.on_drag = on_drag
-        self.setFlag(QGraphicsItem.ItemIsSelectable, True)
-        # self.setFlag(QGraphicsItem.ITem)
-        self.setAcceptHoverEvents(True)
-
-    def boundingRect(self, *args, **kwargs):
-        return QRectF(0, 0, self.w, self.h)
-
-    # def hoverEnterEvent(self, *args, **kwargs):
-    #     QGraphicsItem.hoverEnterEvent(self, *args, **kwargs)
-    #     self.update(self.boundingRect())
-    #
-    #
-    # def hoverLeaveEvent(self, *args, **kwargs):
-    #     QGraphicsItem.hoverLeaveEvent(self, *args, **kwargs)
-    #     self.update(self.boundingRect())
-
-    def paint(self, qPainter, qStyleOptionGraphicsItem, qWidget):
-        c = hoverColor if self.isUnderMouse() else selColor
-        # qPainter.setPen(QPen(hoverColor, 3, Qt.SolidLine))
-        # qPainter.drawLine(-self.w/2, 0, self.w/2, 0)
-        # qPainter.drawLine(0, -self.h/2, 0, self.h/2)
-
-        qPainter.fillRect(self.boundingRect(), c)
-
-    def dragMove(self, delta, suggestedPosition):
-        self.on_drag(delta, suggestedPosition)
 
 
 class RectSelectionItem(QGraphicsItem):
@@ -400,7 +231,6 @@ class RectNumberedItem(RectSelectionItem):
         # self.setPos(self.x+1, self.y+1)
         self.scene().update()
 
-
     def clone(self):
         return RectNumberedItem(self.size, self.constr, self.number.numberProvider)
 
@@ -505,6 +335,17 @@ class ImageScene(QGraphicsScene):
 
         self.dragItems = []
 
+        self._is_pick_enabled_ = True
+
+    def setPickEnabled(self, flag):
+        self._is_pick_enabled_ = flag
+
+    def processPickEvent(self, event):
+        if not self._is_pick_enabled_:
+            #event.ignore()
+            return False
+        else:
+            return True
 
     def selectedElements(self):
         return [item for item in self.selectedItems() if item.parentItem() == self.imgItem]
@@ -527,6 +368,8 @@ class ImageScene(QGraphicsScene):
             del self.imgItem
         pxm = QPixmap(url)
         self.imgItem = self.addPixmap(pxm)
+        # if image should be displayied with antialiasing when zoomed
+        # self.imgItem.setTransformationMode(Qt.SmoothTransformation)
         self.updateGrid()
 
     def updateGrid(self):
@@ -590,7 +433,15 @@ class ImageScene(QGraphicsScene):
             e.setSelected(True)
             self.userItems.append(e)
 
+    def mouseDoubleClickEvent(self, e):
+        if self.processPickEvent(e):
+            QGraphicsScene.mouseDoubleClickEvent(e)
+
     def mousePressEvent(self, e):
+        if not self.processPickEvent(e):
+            QGraphicsScene.mousePressEvent(self, e)
+            return
+
         QGraphicsScene.mousePressEvent(self, e)
         self.recentPos = e.pos()
         self.draggingItems = dict()
@@ -607,17 +458,33 @@ class ImageScene(QGraphicsScene):
         style = styles[0]
 
         self.dragItems = style.initDrag(selItems, e.modifiers(), e.buttons())
+        for item in self.dragItems:
+            item.setDragged(True)
+
         self.pressPos = e.pos()
 
-
     def mouseReleaseEvent(self, e):
+        if not self.processPickEvent(e):
+            QGraphicsScene.mouseReleaseEvent(self, e)
+            return
+
         QGraphicsScene.mouseReleaseEvent(self, e)
+
+        for item in self.dragItems:
+            item.setDragged(False)
+        self.dragItems = []
+
         self.pressPos = None
 
-    def mouseMoveEvent(self, e):
-        QGraphicsScene.mouseMoveEvent(self, e)
+    def mouseMoveEvent(self, event):
+        print 'move event'
+        if not self.processPickEvent(event):
+            QGraphicsScene.mouseMoveEvent(self, event)
+            return
+
+        QGraphicsScene.mouseMoveEvent(self, event)
         if self.pressPos:
-            p = e.pos()
+            p = event.pos()
             delta = QPointF(p.x() - self.pressPos.x(), p.y() - self.pressPos.y())
             #delta = self.posConstr(delta)
 
@@ -662,7 +529,80 @@ class ImageCanvas(QGraphicsView):
 
     def __init__(self, *args):
         QGraphicsView.__init__(self, *args)
+        self._restore_default_drag_mode_()
+        self.is_translating = False
+        self.imgScene = args[0]
+
+        self.startPoint = None
+        self.startScrollValues = None
+
+    def isTranslating(self):
+        return self.is_translating
+
+    def setTranslating(self, flag):
+        self.is_translating = flag
+        self.imgScene.setPickEnabled(not flag)
+
+    # def rescale(self, factor):
+    def wheelEvent(self, event):
+        if event.delta() > 0:
+            self.scale(1.25, 1.25)
+        else:
+            self.scale(0.8, 0.8)
+
+    def _restore_default_drag_mode_(self):
         self.setDragMode(QGraphicsView.RubberBandDrag)
+
+    def mousePressEvent(self, event):
+        if event.buttons() == Qt.MidButton:
+            self.setTranslating(True)
+
+            self.setCursor(Qt.ClosedHandCursor)
+            self.startScrollValues = QPoint(self.horizontalScrollBar().value(), self.verticalScrollBar().value())
+            self.startPoint = event.pos()
+
+        QGraphicsView.mousePressEvent(self, event)
+
+    def mouseReleaseEvent(self, event):
+        if self.isTranslating():
+            self.setTranslating(False)
+            self.setCursor(Qt.ArrowCursor)
+        QGraphicsView.mouseReleaseEvent(self, event)
+
+    def mouseMoveEvent(self, event):
+        if self.isTranslating():
+            self.horizontalScrollBar().setValue(self.startScrollValues.x() - (event.x() - self.startPoint.x()))
+            self.verticalScrollBar().setValue(self.startScrollValues.y() - (event.y() - self.startPoint.y()))
+            event.accept()
+        else:
+            QGraphicsView.mouseMoveEvent(self, event)
+
+    @property
+    def VIEW_CENTER(self):
+        return self.viewport().rect().center()
+
+    @property
+    def VIEW_WIDTH(self):
+        return self.viewport().rect().width()
+
+    @property
+    def VIEW_HEIGHT(self):
+        return self.viewport().rect().height()
+
+    def pan(self, delta):
+        # self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
+        # center = self.VIEW_CENTER
+        newCenter = QPoint(self.startScrollValues.x() - 0.1 * delta.x(), self.startScrollValues.y() - 0.1 * delta.y())
+        self.centerOn(self.mapToScene(newCenter))
+        # self.setTransformationAnchor(QGraphicsView.AnchorViewCenter)
+        # r = self.viewport().rect()
+        # rr = QRectF(r.x()-delta.x(), r.y()-delta.y(), r.width(), r.height())
+        # self.setSceneRect(rr)
+        # self.viewport().move(r.x() + delta.x(), r.y() + delta.y())
+        # self.translate(-delta.x(), -delta.y())
+
+    # def keyPressEvent(self, event):
+    #     if event.key() == Qt.
 
     def saveWidgetAs(self, path):
         self.scene().deselectAll()
