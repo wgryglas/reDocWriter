@@ -1,4 +1,5 @@
-from pyqode.qt.QtWidgets import QGraphicsItem, QPen, QColor, QPainter, QPainterPath
+from pyqode.qt.QtWidgets import QColor, QPainter, QPen
+from pyqode.qt.QtCore import Qt
 
 
 def get_or_default(props, name, default):
@@ -6,11 +7,15 @@ def get_or_default(props, name, default):
 
 
 class GraphicsStyle:
+    BORDER = 0
+    BACKGROUND=1
+    TEXT=2
+
     def __init__(self, **props):
-        self.width = get_or_default(props, 'width', 1)
+        self.width = get_or_default(props, 'width', 3)
         self.background_color = get_or_default(props, 'background_color', None)
         self.border_color = get_or_default(props, 'border_color', None)
-        self.foreground_color = get_or_default(props, 'foreground_color', QColor(255,255,255))
+        self.foreground_color = get_or_default(props, 'foreground_color', QColor(255, 255, 255))
         self.antialiased = get_or_default(props, 'antialiased', False)
 
     def derive(self, **kwargs):
@@ -21,6 +26,26 @@ class GraphicsStyle:
             foreground_color=get_or_default(kwargs, 'foreground_color', self.foreground_color),
             antialiased=get_or_default(kwargs, 'width', self.antialiased)
         )
+
+    def configure(self, qPainter, target):
+        '''
+        Apply settings to painter basing on current style
+        :param qPainter:
+        :param target: define target for configuring painter BORDER | BACKGROUND | TEXT
+        :return: None
+        '''
+        if target != GraphicsStyle.TEXT:
+            qPainter.setRenderHints(QPainter.Antialiasing, self.antialiased)
+            qPainter.setRenderHints(QPainter.HighQualityAntialiasing, self.antialiased)
+        else:
+            qPainter.setRenderHints(QPainter.TextAntialiasing, True)
+
+        if target == GraphicsStyle.BORDER and self.border_color:
+            qPainter.setPen(QPen(self.border_color, self.width, Qt.SolidLine, Qt.SquareCap, Qt.MiterJoin))
+        elif target == GraphicsStyle.BACKGROUND and self.background_color:
+            qPainter.setPen(self.background_color)
+        elif self.foreground_color:
+            qPainter.setPen(self.foreground_color)
 
 
 class StateStyles:
@@ -40,7 +65,7 @@ class StateStyles:
 
 class ItemStyles:
     markColor = QColor(100, 136, 255)
-    selColor = QColor(80, 110, 200)
+    selColor = QColor(186, 65, 45) #QColor(80, 110, 200)
     hoverColor = QColor(255, 0, 0)
     disabled = QColor(200, 200, 200)
 
@@ -50,13 +75,18 @@ class ItemStyles:
             self._base_style_ = base
         elif len(kwargs) > 0:
             self._base_style_ = GraphicsStyle(**kwargs)
-            print self._base_style_.background_color
         else:
             self._base_style_ = GraphicsStyle(border_color=ItemStyles.markColor, width=3)
 
         self.states = StateStyles(self._base_style_)
 
-        state_colors = {'hover': ItemStyles.hoverColor, 'select': ItemStyles.selColor, 'disable': ItemStyles.disabled}
+        state_colors = {
+            'hover': ItemStyles.hoverColor,
+            'select': ItemStyles.selColor,
+            'edit': ItemStyles.selColor,
+            'disable': ItemStyles.disabled
+        }
+
         for state in state_colors:
             override = dict()
             if self._base_style_.background_color:
@@ -74,7 +104,7 @@ class ItemStyles:
             return self.states.get_state('disable')
         elif item.isUnderMouse() or item.isDragged():
             return self.states.get_state('hover')
-        elif item.isSelected():
+        elif item.isSelected() or item.isEdited():
             return self.states.get_state('select')
         elif item.hasFocus():
             return self.states.get_state('focus')
@@ -83,4 +113,5 @@ class ItemStyles:
 
     def set_style(self, state_name, **properties):
         self.states.set_style(state_name, self._base_style_.derive(**properties))
+
 

@@ -2,11 +2,15 @@
 from pyqode.qt.QtCore import Qt, QSizeF, QRectF, QPointF, Signal
 
 from pyqode.qt.QtWidgets import QGraphicsItem, QPen, QColor, QPainter, QPainterPath, QGraphicsRectItem, \
-    QGraphicsPixmapItem, QPixmap
+    QGraphicsPixmapItem, QPixmap, QTransform
 
 from item_style import ItemStyles, GraphicsStyle
 from item_base import ItemBase
 
+# from pyqode.qt.QtWidgets import QGraphicsDropShadowEffect
+# effect = QGraphicsDropShadowEffect()
+# effect.setEnabled(False)
+# self.image.setGraphicsEffect(effect)
 
 def makeArrowStyle():
     styles = ItemStyles(background_color=QColor(100, 136, 255, 100))
@@ -18,77 +22,81 @@ def makeArrowStyle():
 class ExtensionArrow(ItemBase):
     def __init__(self, orientation, on_drag, style=makeArrowStyle()):
         ItemBase.__init__(self, style)
-        image = QGraphicsPixmapItem(QPixmap('/home/wgryglas/Code/Python/reDocsEditor/assets/icons/arrow-down.png'))
-        image.setParentItem(self)
+        self.image = QGraphicsPixmapItem(QPixmap('/home/wgryglas/Code/Python/reDocsEditor/assets/icons/arrow-down.png'))
+        self.image.setParentItem(self)
         self.on_drag = on_drag
         self._rect_ = QRectF(0, 0, 0, 0)
-
-        if orientation == 'up':
-            self.setRect(QRectF(0, -22, 30, 15))
-            image.rotate(180)
-            image.setPos(24, -5)
-        elif orientation == 'down':
-            self.setRect(QRectF(0, 5, 30, 15))
-            image.setPos(8, 5)
-        elif orientation == 'left':
-            self.setRect(QRectF(-22, 0, 15, 30))
-            image.rotate(90)
-            image.setPos(-5, 8)
-        else:
-            self.setRect(QRectF(5, 0, 15, 30))
-            image.rotate(-90)
-            image.setPos(5, 24)
-
-        # self.setBrush(QColor(100, 136, 255, 100))
-        # self.setPen(QColor(100, 136, 255, 100))
-
+        self.sizeScale = 1.0
         self.orientation = orientation
 
-        image.setFlag(QGraphicsItem.ItemIsSelectable, False)
+        self.posTransform = QTransform()
+        self.translationTransform = QTransform()
+        self.orientationTransform = QTransform()
+        self.scaleTransform = QTransform()
 
-        self.image = image
+        ir = self.image.boundingRect()
+        self.imageSize = QSizeF(ir.width(), ir.height())
+        self.image.setTransform(QTransform.fromTranslate(-self.imageSize.width() / 2, -self.imageSize.height() / 2))
+
+        self.base_rect = QRectF(-15, -7.5, 30, 15)
+
+        if orientation == 'up':
+            self.orientationTransform.rotate(180)
+            self.translationTransform.translate(0, -7.5)
+        elif orientation == 'right':
+            self.orientationTransform.rotate(-90)
+            self.translationTransform.translate(7.5, 0)
+        elif orientation == 'left':
+            self.orientationTransform.rotate(90)
+            self.translationTransform.translate(-7.5, 0)
+        else:
+            self.translationTransform.translate(0, 7.5)
 
         self.setFlag(QGraphicsItem.ItemIsSelectable)
 
         self.setAcceptHoverEvents(True)
 
-        # self.setFlag(QGraphicsItem.ItemIsFocusable)
+        self.updateTransforms()
 
-    def setRect(self, rect):
-        self._rect_ = rect
+    def updateTransforms(self):
+        total = self.scaleTransform * self.orientationTransform * self.translationTransform * self.posTransform
+        self.setTransform(total)
 
-    def rect(self):
-        return self._rect_
+    def setPos(self, x, y):
+        self.posTransform.reset()
+        self.posTransform.translate(x, y)
+        self.updateTransforms()
+
+    # def rect(self):
+    #     tr = self.posTransform * self.translationTransform * self.orientationTransform
+    #     return tr.mapRect(self.base_rect)
+
+    # def viewRect(self):
+    #     return self.transform().mapRect(self.base_rect)
 
     def boundingRect(self, *args, **kwargs):
-        return self._rect_
-
-    def _paint_rect_(self):
-        return self._rect_
-        #return QRectF(self._rect_.x(), self._rect_.y(), self._rect_.width()+1, self._rect_.height()+1)
+        return self.base_rect
 
     def paint(self, qPainter, qStyleOptionGraphicsItem, qWidget):
-        # qPainter.fillRect(2, 2, 28, 18, QColor(100, 136, 255, 100))
-
         style = self.getStyle()
 
-        # if self.isUnderMouse() or self.image.isUnderMouse():
-        #     self.setBrush()
-        # else:
-        #     self.setBrush(QColor(100, 136, 255, 100))
+        r = self.base_rect #self.viewRect()
+
         if style.background_color:
             qPainter.setPen(style.background_color)
-            qPainter.fillRect(self._rect_, style.background_color)
+            qPainter.fillRect(r, style.background_color)
 
         if style.border_color:
             qPainter.setPen(style.border_color)
-            qPainter.drawRect(self._paint_rect_())
+            qPainter.drawRect(r)
 
-            # qPainter.drawPath(path, style.border_color)
+    def isConstantSize(self):
+        return True
 
-        #QGraphicsRectItem.paint(self, qPainter, qStyleOptionGraphicsItem, qWidget)
-
-
+    def setSizeScale(self, scale):
+        self.scaleTransform.reset()
+        self.scaleTransform.scale(scale, scale)
+        self.updateTransforms()
 
     def dragMove(self, delta, suggestedPosition):
         if self.orientation == 'up':
@@ -121,20 +129,7 @@ class MoveHandle(ItemBase):
     def boundingRect(self, *args, **kwargs):
         return QRectF(0, 0, self.w, self.h)
 
-    # def hoverEnterEvent(self, *args, **kwargs):
-    #     QGraphicsItem.hoverEnterEvent(self, *args, **kwargs)
-    #     self.update(self.boundingRect())
-    #
-    #
-    # def hoverLeaveEvent(self, *args, **kwargs):
-    #     QGraphicsItem.hoverLeaveEvent(self, *args, **kwargs)
-    #     self.update(self.boundingRect())
-
     def paint(self, qPainter, qStyleOptionGraphicsItem, qWidget):
-        # c = hoverColor if self.isUnderMouse() else selColor
-        # qPainter.setPen(QPen(hoverColor, 3, Qt.SolidLine))
-        # qPainter.drawLine(-self.w/2, 0, self.w/2, 0)
-        # qPainter.drawLine(0, -self.h/2, 0, self.h/2)
         style = self.getStyle()
         if style.background_color:
             qPainter.fillRect(self.boundingRect(), style.background_color)

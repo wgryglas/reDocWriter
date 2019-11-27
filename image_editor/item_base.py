@@ -1,4 +1,4 @@
-from pyqode.qt.QtWidgets import QGraphicsItem, QPen, QColor, QPainter, QPainterPath
+from pyqode.qt.QtWidgets import QGraphicsItem
 
 
 class ItemBase(QGraphicsItem):
@@ -16,7 +16,6 @@ class ItemBase(QGraphicsItem):
 
     def setEdited(self, flag):
         self._isEdited_ = flag
-        self.paint()
 
     def isEditable(self):
         return False
@@ -26,3 +25,12 @@ class ItemBase(QGraphicsItem):
 
     def setDragged(self, value):
         self._isDragged_ = value
+
+    def isConstantSize(self):
+        return False
+
+    def setSizeScale(self, scale):
+        pass
+
+    def dragMove(self, localDelta, totalDelta):
+        pass

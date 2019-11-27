@@ -1,238 +1,9 @@
-from pyqode.qt.QtCore import Qt, QSizeF, QRectF, QPointF, Signal, QPoint, QRect
-from pyqode.qt.QtWidgets import QGraphicsView, QGraphicsItem, QPen, QColor, QPainter, QGraphicsScene, QPixmap, \
-    QGraphicsLineItem, QPainterPath, QGraphicsRectItem, QGraphicsPixmapItem, QMainWindow, QWidget, QPushButton, \
-    QCheckBox, QSpinBox, QLineEdit, QHBoxLayout, QVBoxLayout, QStyle, QIntValidator, QLabel, QMouseEvent
+from pyqode.qt.QtCore import Qt, QSizeF, QPointF, Signal, QPoint
+from pyqode.qt.QtWidgets import QGraphicsView, QColor, QPainter, QGraphicsScene, QPixmap, QGraphicsLineItem, \
+    QMainWindow, QWidget, QPushButton, QSpinBox, QLineEdit, QHBoxLayout, QVBoxLayout, QStyle, QIntValidator, QLabel
 
-from rect_postion import *
 from number_item import NumberItem
-from handle_itemes import ExtensionArrow, MoveHandle
-
-markColor = QColor(100, 136, 255)
-selColor = QColor(80, 110, 200)
-hoverColor = QColor(255, 0, 0)
-
-
-class RectSelectionItem(QGraphicsItem):
-    def __init__(self, size, constr):
-        QGraphicsItem.__init__(self)
-        self.setFlag(QGraphicsRectItem.ItemIsSelectable)
-        self.size = size
-        self.lineWidth = 3
-        self.color = markColor
-        self.padding = 16
-        self.constr = constr
-
-        self.setAcceptHoverEvents(True)
-
-        down = ExtensionArrow('down', lambda v: self.setRect(self.x, self.y, self.width, self.height+v))
-        down.setParentItem(self)
-
-        up = ExtensionArrow('up', lambda v: self.setRect(self.x, self.y-v, self.width, self.height+v))
-        up.setParentItem(self)
-
-        left = ExtensionArrow('left', lambda v: self.setRect(self.x-v, self.y, self.width+v, self.height))
-        left.setParentItem(self)
-
-        right = ExtensionArrow('right', lambda v: self.setRect(self.x, self.y, self.width+v, self.height))
-        right.setParentItem(self)
-
-        self.posHandle = MoveHandle(lambda delta, sugessted: self.setPos(self.constr(self.pos() + delta)))
-        self.posHandle.setParentItem(self)
-
-        self.arrows = [left, right, up, down]
-        self.setRect(0, 0, size.width(), size.height())
-
-        self.activeItems = [self.posHandle]
-        self.activeItems.extend(self.arrows)
-
-        for a in self.activeItems:
-            a.setVisible(False)
-
-    def dragUp(self, v):
-        p = self.pos()
-        self.setPos(p.x(), p.y() - v)
-        self.setSize(self.width, self.height + v)
-
-    def dragLeft(self, v):
-        p = self.pos()
-        self.setSize(self.width+v, self.height)
-        self.setPos(p.x() - v, p.y())
-        self.setRect()
-
-    def dragRight(self, v):
-        self.setSize(self.width+v, self.height)
-
-    def setRect(self, x, y, w, h):
-        # if self.x == x and self.y == y and self.width == w and self.height == h:
-        #     return
-        if w <= 0:
-            w = self.width
-
-        if h <= 0:
-            h = self.height
-
-        self.arrows[0].setPos(0, (h-self.arrows[0].rect().height())/2 )
-        self.arrows[1].setPos(w, (h-self.arrows[1].rect().height())/2 )
-
-        self.arrows[2].setPos((w-self.arrows[2].rect().width())/2, 0)
-        self.arrows[3].setPos((w-self.arrows[3].rect().width())/2, h)
-
-        min = self.constr(QPointF(x, y))
-        max = self.constr(QPointF(x+w,y+h))
-
-        self.size = QSizeF(max.x()-min.x(), max.y()-min.y())
-
-        self.posHandle.setPos(-self.posHandle.w / 2 + self.size.width()/2, -self.posHandle.h / 2 + self.size.height()/2)
-
-        x = min.x()
-        y = min.y()
-
-        #force redraw by chaning position
-        if self.x == x and self.y == y:
-            self.setPos(x-1, y-1)
-            self.setPos(x, y)
-        else:
-            self.setPos(x, y)
-
-    @property
-    def x(self):
-        return self.pos().x()
-
-    @property
-    def y(self):
-        return self.pos().y()
-
-    @property
-    def width(self):
-        return self.size.width()
-
-    @property
-    def height(self):
-        return self.size.height()
-
-    def boundingRect(self, *args, **kwargs):
-        return QRectF(-self.padding, -self.padding, self.size.width()+2*self.padding, self.size.height()+2*self.padding)
-
-    def paintItem(self, qPainter, selected):
-        qPainter.setRenderHints(QPainter.Antialiasing, False)
-        qPainter.setRenderHints(QPainter.HighQualityAntialiasing, False)
-        qPainter.setPen(QPen(selColor if selected else markColor, self.lineWidth, Qt.SolidLine, Qt.SquareCap, Qt.MiterJoin))
-        qPainter.drawRect(0, 0, self.width, self.height)
-
-    def paint(self, qPainter, qStyleOptionGraphicsItem, qWidget):
-        qPainter.setRenderHint(QPainter.Antialiasing, True)
-        qPainter.setRenderHint(QPainter.TextAntialiasing, True)
-
-        sel = self.isSelected()
-        if not sel:
-            sel = any([a.isSelected() for a in self.activeItems])
-
-        need_redraw = False
-        for a in self.activeItems:
-            if not sel and a.isVisible():
-                need_redraw = True
-            a.setVisible(sel)
-
-        self.paintItem(qPainter, sel)
-
-        #force redraw on child selection changed
-        if need_redraw:
-            # self.update(self.boundingRect())
-            p = self.pos()
-            self.setPos(p.x()-1, p.y()-1)
-            self.setPos(p.x(), p.y())
-
-    def dragMove(self, delta, suggestedPosition):
-        pass
-        # self.setPos(self.constr(self.pos() + delta))
-
-    def clone(self):
-        item = RectSelectionItem(self.size, self.constr)
-        p = self.pos()
-        s = self.constr.spacing
-        item.setPos(p.x()+5*s, p.y()+5*s)
-        return item
-
-
-class EllipseSelectionItem(RectSelectionItem):
-        def __init__(self, size, constr):
-            RectSelectionItem.__init__(self, size, constr)
-
-        def paintItem(self, qPainter, selected):
-            qPainter.setPen(QPen(selColor if selected else markColor, self.lineWidth, Qt.SolidLine))
-            qPainter.drawEllipse(0, 0, self.width, self.height)
-
-        def clone(self):
-            return EllipseSelectionItem(self.size, self.constr)
-
-
-class AnchoredNumberItem(NumberItem):
-
-    dragStrength = 50
-
-    def __init__(self, numberProvider, constr, on_position_change, corner=CornerPosition.top_left):
-        NumberItem.__init__(self, numberProvider, constr)
-        self.corner = corner
-        self._change_trigger_ = on_position_change
-
-    def dragMove(self, delta, suggestedPosition):
-        horizontal = abs(delta.x()) > abs(delta.y())
-
-        corner = None
-
-        if horizontal and delta.x() > AnchoredNumberItem.dragStrength:
-            corner = self.corner.toRight
-        elif horizontal and delta.x() < -AnchoredNumberItem.dragStrength:
-            corner = self.corner.toLeft
-        elif not horizontal and delta.y() > AnchoredNumberItem.dragStrength:
-            corner = self.corner.toDown
-        elif not horizontal and delta.y() < -AnchoredNumberItem.dragStrength:
-            corner = self.corner.toUp
-
-        if corner is not None:
-            self.corner = corner
-            self._change_trigger_()
-
-    # def setSelected(self, *args, **kwargs):
-    #     NumberItem.setSelected()
-
-
-class RectNumberedItem(RectSelectionItem):
-    def __init__(self, size, constr, numberProvider):
-        RectSelectionItem.__init__(self, size, constr)
-        self.number = AnchoredNumberItem(numberProvider, constr, self.positionNumber)
-        self.number.setParentItem(self)
-        self.activeShift = 0
-        self.numberShift = -5
-
-        self.positionNumber()
-
-    def paintItem(self, qPainter, selected):
-        self.activeNumber(selected)
-        RectSelectionItem.paintItem(self, qPainter, selected)
-
-    def positionNumber(self):
-        s = self.activeShift + self.numberShift
-        if self.number.corner == CornerPosition.top_left:
-            self.number.setPos(-self.number.size-s, -self.number.size-s)
-        elif self.number.corner == CornerPosition.top_right:
-            self.number.setPos(self.width+s, -self.number.size-s)
-        elif self.number.corner == CornerPosition.bottom_left:
-            self.number.setPos(-self.number.size-s, self.height+s)
-        else:
-            self.number.setPos(self.width+s, self.height+s)
-
-    def activeNumber(self, apart):
-        self.activeShift = 0 if not apart else self.number.size / 2
-        self.positionNumber()
-
-        # #force redraw
-        # self.setPos(self.x-1, self.y-1)
-        # self.setPos(self.x+1, self.y+1)
-        self.scene().update()
-
-    def clone(self):
-        return RectNumberedItem(self.size, self.constr, self.number.numberProvider)
+from rect_items import RectSelectionItem, EllipseSelectionItem, RectNumberedItem
 
 
 class PosConstraint:
@@ -242,7 +13,7 @@ class PosConstraint:
         self.yShift = 0
 
     def __call__(self, pnt):
-        if self.spacing == 1:
+        if self.spacing == 0:
             return pnt
 
         ix = int(pnt.x()) - self.xShift
@@ -320,7 +91,7 @@ class ImageScene(QGraphicsScene):
         self.gridXShift = 0
         self.gridYShift = 0
 
-        self.posConstr = PosConstraint(10)
+        self.posConstr = PosConstraint(0)
 
         self.pressPos = None
         self.draggingItems = dict()
@@ -337,12 +108,16 @@ class ImageScene(QGraphicsScene):
 
         self._is_pick_enabled_ = True
 
+        self.editedItem = None
+
+        self.pressEvaluated = False
+
     def setPickEnabled(self, flag):
         self._is_pick_enabled_ = flag
 
     def processPickEvent(self, event):
         if not self._is_pick_enabled_:
-            #event.ignore()
+            event.ignore()
             return False
         else:
             return True
@@ -366,8 +141,13 @@ class ImageScene(QGraphicsScene):
         if self.imgItem:
             self.removeItem(self.imgItem)
             del self.imgItem
+
         pxm = QPixmap(url)
+
         self.imgItem = self.addPixmap(pxm)
+        # from pyqode.qt.QtWidgets import QGraphicsItem
+        # self.imgItem.setFlags(QGraphicsItem.ItemIsSelectable)
+
         # if image should be displayied with antialiasing when zoomed
         # self.imgItem.setTransformationMode(Qt.SmoothTransformation)
         self.updateGrid()
@@ -383,16 +163,21 @@ class ImageScene(QGraphicsScene):
             del i
         self.gridLines = []
 
-        if spacing == 1:
+        if spacing == 0:
             return
 
         color = QColor(100, 100, 100, 20)
 
+        def setupLine(l):
+            l.setPen(color)
+            l.setFlag(QGraphicsLineItem.ItemIsSelectable, False)
+            l.setFlag(QGraphicsLineItem.ItemAcceptsInputMethod, False)
+
         x = self.posConstr.xShift
         while x <= w:
             item = QGraphicsLineItem(x, 0, x, h)
-            item.setPen(color)
             item.setParentItem(self.imgItem)
+            setupLine(item)
             self.gridLines.append(item)
             x += spacing
 
@@ -400,7 +185,7 @@ class ImageScene(QGraphicsScene):
         while y <= h:
             item = QGraphicsLineItem(0, y, w, y)
             item.setParentItem(self.imgItem)
-            item.setPen(color)
+            setupLine(item)
             self.gridLines.append(item)
             y += spacing
 
@@ -433,22 +218,41 @@ class ImageScene(QGraphicsScene):
             e.setSelected(True)
             self.userItems.append(e)
 
+    def _get_click_items(self, event):
+        clickItems = self.items(event.scenePos())
+        if self.imgItem in clickItems:
+            clickItems.remove(self.imgItem)
+
+        for it in clickItems:
+            if it in self.gridLines:
+                clickItems.remove(it)
+
+        return clickItems
+
     def mouseDoubleClickEvent(self, e):
         if self.processPickEvent(e):
-            QGraphicsScene.mouseDoubleClickEvent(e)
+            clickItems = self._get_click_items(e)
+            if len(clickItems) == 1 and clickItems[0].isEditable():
+                clickItems[0].setEdited(True)
+                self.editedItem = clickItems[0]
 
     def mousePressEvent(self, e):
+        pressItems = self._get_click_items(e)
+        if len(pressItems) == 0:
+            self.emptyPress()
+            QGraphicsScene.mousePressEvent(self, e)
+            return
+
         if not self.processPickEvent(e):
             QGraphicsScene.mousePressEvent(self, e)
             return
 
         QGraphicsScene.mousePressEvent(self, e)
-        self.recentPos = e.pos()
         self.draggingItems = dict()
 
         selItems = self.selectedItems()
 
-        styles = filter(lambda style: style.isValid(selItems, e.modifiers(), e.buttons()), self.dragStyles)
+        styles = filter(lambda s: s.isValid(selItems, e.modifiers(), e.buttons()), self.dragStyles)
 
         if len(styles) > 1:
             raise ValueError('More then single drag style detected')
@@ -460,8 +264,16 @@ class ImageScene(QGraphicsScene):
         self.dragItems = style.initDrag(selItems, e.modifiers(), e.buttons())
         for item in self.dragItems:
             item.setDragged(True)
+        #style.setStartPoint(e.pos())
 
-        self.pressPos = e.pos()
+        self.pressPos = e.scenePos()
+        self.recentPos = e.scenePos()
+
+    def updateViewScale(self, scale):
+        from item_base import ItemBase
+        for item in self.items():
+            if isinstance(item, ItemBase) and item.isConstantSize():
+                item.setSizeScale(scale)
 
     def mouseReleaseEvent(self, e):
         if not self.processPickEvent(e):
@@ -476,16 +288,21 @@ class ImageScene(QGraphicsScene):
 
         self.pressPos = None
 
+    def emptyPress(self):
+        if self.editedItem:
+            self.editedItem.setEdited(False)
+            self.editedItem = None
+
     def mouseMoveEvent(self, event):
-        print 'move event'
         if not self.processPickEvent(event):
             QGraphicsScene.mouseMoveEvent(self, event)
             return
 
         QGraphicsScene.mouseMoveEvent(self, event)
-        if self.pressPos:
-            p = event.pos()
-            delta = QPointF(p.x() - self.pressPos.x(), p.y() - self.pressPos.y())
+        if self.recentPos and self.pressPos:
+            p = event.scenePos()
+            delta = p - self.recentPos
+            bigDelta = p - self.pressPos
             #delta = self.posConstr(delta)
 
             #drag multiple only on root items, otherwise extra handles would be triggered
@@ -495,7 +312,13 @@ class ImageScene(QGraphicsScene):
                 items = filter(lambda i: i.parentItem() == self.imgItem, items)
 
             for item in items:
-                item.dragMove(delta, self.pressPos + delta)
+                item.dragMove(delta, bigDelta)
+
+        self.recentPos = event.scenePos()
+
+        # TODO Force redraw, this would give worse performance, but ensures proper visual effect
+        self.update(self.sceneRect())
+
 
     def renderToFile(self, path):
         from pyqode.qt.QtGui import QImage
@@ -509,8 +332,8 @@ class ImageScene(QGraphicsScene):
         image = QImage(self.sceneRect().size().toSize(), QImage.Format_ARGB32)
         image.fill(Qt.transparent)
         painter = QPainter(image)
-        painter.setRenderHint(QPainter.Antialiasing, True)
-        painter.setRenderHint(QPainter.TextAntialiasing, True)
+        # painter.setRenderHint(QPainter.Antialiasing, True)
+        # painter.setRenderHint(QPainter.TextAntialiasing, True)
         self.render(painter)
         painter.end()
 
@@ -543,24 +366,23 @@ class ImageCanvas(QGraphicsView):
         self.is_translating = flag
         self.imgScene.setPickEnabled(not flag)
 
-    # def rescale(self, factor):
     def wheelEvent(self, event):
         if event.delta() > 0:
             self.scale(1.25, 1.25)
         else:
             self.scale(0.8, 0.8)
+        self.scene().updateViewScale(1.0 / self.transform().m11())
 
     def _restore_default_drag_mode_(self):
         self.setDragMode(QGraphicsView.RubberBandDrag)
 
     def mousePressEvent(self, event):
+        self.scene().pressEvaluated = False
         if event.buttons() == Qt.MidButton:
             self.setTranslating(True)
-
             self.setCursor(Qt.ClosedHandCursor)
             self.startScrollValues = QPoint(self.horizontalScrollBar().value(), self.verticalScrollBar().value())
             self.startPoint = event.pos()
-
         QGraphicsView.mousePressEvent(self, event)
 
     def mouseReleaseEvent(self, event):
@@ -589,23 +411,9 @@ class ImageCanvas(QGraphicsView):
     def VIEW_HEIGHT(self):
         return self.viewport().rect().height()
 
-    def pan(self, delta):
-        # self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
-        # center = self.VIEW_CENTER
-        newCenter = QPoint(self.startScrollValues.x() - 0.1 * delta.x(), self.startScrollValues.y() - 0.1 * delta.y())
-        self.centerOn(self.mapToScene(newCenter))
-        # self.setTransformationAnchor(QGraphicsView.AnchorViewCenter)
-        # r = self.viewport().rect()
-        # rr = QRectF(r.x()-delta.x(), r.y()-delta.y(), r.width(), r.height())
-        # self.setSceneRect(rr)
-        # self.viewport().move(r.x() + delta.x(), r.y() + delta.y())
-        # self.translate(-delta.x(), -delta.y())
-
-    # def keyPressEvent(self, event):
-    #     if event.key() == Qt.
-
     def saveWidgetAs(self, path):
         self.scene().deselectAll()
+        self.fitInView()
         QPixmap.grabWidget(self).save(path)
 
 
@@ -671,7 +479,6 @@ class EditImageWindow(QMainWindow):
         duplicate_button.clicked.connect(lambda: self.scene.duplicateSelection())
         self.enabledOnSelection.append(duplicate_button)
 
-
         delete_button = QPushButton()
         delete_button.setToolTip('Delete')
         delete_button.setIcon(self.style().standardIcon(QStyle.SP_TrashIcon))
@@ -679,10 +486,9 @@ class EditImageWindow(QMainWindow):
         delete_button.clicked.connect(lambda: self.scene.deleteSelected())
         self.enabledOnSelection.append(delete_button)
 
-
         spacing = QLineEdit()
         spacing.setText(str(self.scene.posConstr.spacing))
-        spacing.setValidator(QIntValidator(bottom=1))
+        spacing.setValidator(QIntValidator(bottom=0))
         spacing.returnPressed.connect(lambda: self.scene.setSpacing(int(spacing.text())))
         spacing.setMaximumWidth(30)
 
@@ -743,11 +549,12 @@ class EditImageWindow(QMainWindow):
 def main():
     from pyqode.qt.QtWidgets import QApplication
     import sys
+    from handle_itemes import ExtensionArrow
 
     app = QApplication(sys.argv)
     win = EditImageWindow("/home/wgryglas/test-edit.png")
-    win.show()
 
+    win.show()
 
     sys.exit(app.exec_())
 
