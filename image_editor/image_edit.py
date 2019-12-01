@@ -32,6 +32,7 @@ class DragStyle:
     def __init__(self):
         self.start = QPointF()
         self.pos = QPointF()
+        self.posPrev = QPointF()
         self.startItemsPosition = dict()
 
     def isValid(self, selectedItems, keyModifiers, buttons):
@@ -44,7 +45,8 @@ class DragStyle:
         raise NotImplementedError()
 
     def _filterItems_(self, selectedItems, keys, buttons):
-        return selectedItems
+        # The only item without parent is the root image, we need to get rid of it from selection
+        return filter(lambda e: e.parentItem(), selectedItems)
 
     def initDrag(self, selectedItems, keys, buttons):
         """
@@ -61,8 +63,11 @@ class DragStyle:
 
     def setStartPoint(self, pnt):
         self.start = pnt
+        self.pos = pnt
+        self.posPrev = pnt
 
     def setMovePoint(self, pnt):
+        self.posPrev = self.pos
         self.pos = pnt
 
     def applyDrag(self, items):
@@ -73,13 +78,59 @@ class DragStyle:
 
 
 class DefaultDrag(DragStyle):
+
+    def _filterItems_(self, selectedItems, keys, buttons):
+        return filter(lambda e: e.isFreeMovable(), DragStyle._filterItems_(self, selectedItems, keys, buttons))
+
     def isValid(self, selectedItems, keyModifiers, buttons):
         return len(selectedItems) == 1 and keyModifiers == Qt.NoModifier and buttons == Qt.LeftButton
 
     def applyDrag(self, items):
-        delta = self.pos - self.start
+        bigDelta = self.pos - self.start
+        delta = self.pos - self.posPrev
         for item in items:
-            item.dragMove(delta)
+            item.dragMove(delta, bigDelta)
+
+
+class DuplicateDrag(DragStyle):
+    def __init__(self, scene):
+        DragStyle.__init__(self)
+        self.scene = scene
+        self.dragging = None
+        self.dir = None
+
+    def isValid(self, selectedItems, keyModifiers, buttons):
+        return len(selectedItems) > 0 and keyModifiers == Qt.ControlModifier and buttons == Qt.LeftButton
+
+    def clone(self):
+        self.dragging = [e.clone() for e in self.scene.selectedElements()]
+        for e in self.dragging:
+            self.scene.addUserItem(e)
+
+    def setStartPoint(self, pnt):
+        DragStyle.setStartPoint(self, pnt)
+
+    def setMovePoint(self, pnt):
+        DragStyle.setMovePoint(self, pnt)
+        if not self.dragging:
+            self.clone()
+
+        if not self.dir:
+            delta = self.pos - self.posPrev
+            if delta.x() != 0 or delta.y() != 0:
+                self.dir = 1 if abs(delta.x()) > abs(delta.y()) else 2
+
+    def finish(self):
+        self.dragging = None
+        self.dir = None
+
+    def applyDrag(self, items):
+        if self.dragging and self.dir:
+            bigDelta = self.pos - self.start
+            delta = self.pos - self.posPrev
+            delta = QPointF(delta.x(), 0) if self.dir == 1 else QPointF(0, delta.y())
+            for item in self.dragging:
+                item.dragMove(delta, bigDelta)
 
 
 class ImageScene(QGraphicsScene):
@@ -91,7 +142,7 @@ class ImageScene(QGraphicsScene):
         self.gridXShift = 0
         self.gridYShift = 0
 
-        self.posConstr = PosConstraint(0)
+        self.posConstraint = PosConstraint(0)
 
         self.pressPos = None
         self.draggingItems = dict()
@@ -102,7 +153,9 @@ class ImageScene(QGraphicsScene):
 
         self.userItems = []
 
-        self.dragStyles = [DefaultDrag()]
+        self.dragStyles = [DefaultDrag(), DuplicateDrag(self)]
+
+        self.activeDragStyle = None
 
         self.dragItems = []
 
@@ -126,15 +179,15 @@ class ImageScene(QGraphicsScene):
         return [item for item in self.selectedItems() if item.parentItem() == self.imgItem]
 
     def setSpacing(self, spacing):
-        self.posConstr.spacing = spacing
+        self.posConstraint.spacing = spacing
         self.updateGrid()
 
     def setXGridShift(self, shift):
-        self.posConstr.xShift = shift
+        self.posConstraint.xShift = shift
         self.updateGrid()
 
     def setYGridShift(self, shift):
-        self.posConstr.yShift = shift
+        self.posConstraint.yShift = shift
         self.updateGrid()
 
     def setImage(self, url):
@@ -156,7 +209,7 @@ class ImageScene(QGraphicsScene):
         rect = self.imgItem.boundingRect()
         w = rect.width()
         h = rect.height()
-        spacing = self.posConstr.spacing
+        spacing = self.posConstraint.spacing
 
         for i in self.gridLines:
             self.removeItem(i)
@@ -173,7 +226,7 @@ class ImageScene(QGraphicsScene):
             l.setFlag(QGraphicsLineItem.ItemIsSelectable, False)
             l.setFlag(QGraphicsLineItem.ItemAcceptsInputMethod, False)
 
-        x = self.posConstr.xShift
+        x = self.posConstraint.xShift
         while x <= w:
             item = QGraphicsLineItem(x, 0, x, h)
             item.setParentItem(self.imgItem)
@@ -181,7 +234,7 @@ class ImageScene(QGraphicsScene):
             self.gridLines.append(item)
             x += spacing
 
-        y = self.posConstr.yShift
+        y = self.posConstraint.yShift
         while y <= h:
             item = QGraphicsLineItem(0, y, w, y)
             item.setParentItem(self.imgItem)
@@ -199,24 +252,35 @@ class ImageScene(QGraphicsScene):
         return item
 
     def addNumberElement(self, numberProvider):
-        return self._add_and_position_element(NumberItem(numberProvider, self.posConstr))
+        return self._add_and_position_element(NumberItem(numberProvider, self.posConstraint))
 
     def addRectElement(self):
-        return self._add_and_position_element(RectSelectionItem(QSizeF(100, 50), self.posConstr))
+        return self._add_and_position_element(RectSelectionItem(QSizeF(100, 50), self.posConstraint))
 
     def addEllipseElement(self):
-        return self._add_and_position_element(EllipseSelectionItem(QSizeF(50, 50), self.posConstr))
+        return self._add_and_position_element(EllipseSelectionItem(QSizeF(50, 50), self.posConstraint))
 
     def addNumberedRectElement(self, numberProvider):
-        return self._add_and_position_element(RectNumberedItem(QSizeF(100, 50), self.posConstr, numberProvider))
+        return self._add_and_position_element(RectNumberedItem(QSizeF(100, 50), self.posConstraint, numberProvider))
+
+    def addUserItem(self, item):
+        """
+        :param item: instance derived from ItemBase
+        :return:
+        """
+        item.setParentItem(self.imgItem)
+        self.userItems.append(item)
 
     def duplicateSelection(self):
         newEl = [e.clone() for e in self.selectedElements()]
         self.clearSelection()
         for e in newEl:
-            e.setParentItem(self.imgItem)
-            e.setSelected(True)
-            self.userItems.append(e)
+            self.addUserItem(e)
+
+        for e in reversed(newEl):
+            if e.isEditable():
+                self.setItemEdited(e)
+                return
 
     def _get_click_items(self, event):
         clickItems = self.items(event.scenePos())
@@ -229,16 +293,21 @@ class ImageScene(QGraphicsScene):
 
         return clickItems
 
+    def setItemEdited(self, item):
+        if self.editedItem:
+            self.editedItem.setEdited(False)
+        item.setEdited(True)
+        self.editedItem = item
+
     def mouseDoubleClickEvent(self, e):
         if self.processPickEvent(e):
             clickItems = self._get_click_items(e)
             if len(clickItems) == 1 and clickItems[0].isEditable():
-                clickItems[0].setEdited(True)
-                self.editedItem = clickItems[0]
+                self.setItemEdited(clickItems[0])
 
     def mousePressEvent(self, e):
         pressItems = self._get_click_items(e)
-        if len(pressItems) == 0:
+        if len(pressItems) == 0 and e.buttons() == Qt.LeftButton:
             self.emptyPress()
             QGraphicsScene.mousePressEvent(self, e)
             return
@@ -260,20 +329,27 @@ class ImageScene(QGraphicsScene):
             return
 
         style = styles[0]
+        self.activeDragStyle = style
 
         self.dragItems = style.initDrag(selItems, e.modifiers(), e.buttons())
         for item in self.dragItems:
             item.setDragged(True)
-        #style.setStartPoint(e.pos())
 
-        self.pressPos = e.scenePos()
-        self.recentPos = e.scenePos()
+        style.setStartPoint(e.scenePos())
 
-    def updateViewScale(self, scale):
-        from item_base import ItemBase
-        for item in self.items():
-            if isinstance(item, ItemBase) and item.isConstantSize():
-                item.setSizeScale(scale)
+    def mouseMoveEvent(self, event):
+        if not self.processPickEvent(event):
+            QGraphicsScene.mouseMoveEvent(self, event)
+            return
+
+        QGraphicsScene.mouseMoveEvent(self, event)
+        if self.activeDragStyle:
+            p = event.scenePos()
+            self.activeDragStyle.setMovePoint(p)
+            self.activeDragStyle.applyDrag(self.dragItems)
+
+        # TODO Force redraw, this would give worse performance, but ensures proper visual effect
+        self.update(self.sceneRect())
 
     def mouseReleaseEvent(self, e):
         if not self.processPickEvent(e):
@@ -288,37 +364,20 @@ class ImageScene(QGraphicsScene):
 
         self.pressPos = None
 
+        if self.activeDragStyle:
+            self.activeDragStyle.finish()
+            self.activeDragStyle = None
+
+    def updateViewScale(self, scale):
+        from item_base import ItemBase
+        for item in self.items():
+            if isinstance(item, ItemBase): # and item.isConstantSize()
+                item.setSizeScale(scale)
+
     def emptyPress(self):
         if self.editedItem:
             self.editedItem.setEdited(False)
             self.editedItem = None
-
-    def mouseMoveEvent(self, event):
-        if not self.processPickEvent(event):
-            QGraphicsScene.mouseMoveEvent(self, event)
-            return
-
-        QGraphicsScene.mouseMoveEvent(self, event)
-        if self.recentPos and self.pressPos:
-            p = event.scenePos()
-            delta = p - self.recentPos
-            bigDelta = p - self.pressPos
-            #delta = self.posConstr(delta)
-
-            #drag multiple only on root items, otherwise extra handles would be triggered
-            #items = self.draggingItems.keys()
-            items = self.dragItems
-            if len(self.draggingItems) > 1:
-                items = filter(lambda i: i.parentItem() == self.imgItem, items)
-
-            for item in items:
-                item.dragMove(delta, bigDelta)
-
-        self.recentPos = event.scenePos()
-
-        # TODO Force redraw, this would give worse performance, but ensures proper visual effect
-        self.update(self.sceneRect())
-
 
     def renderToFile(self, path):
         from pyqode.qt.QtGui import QImage
@@ -418,7 +477,6 @@ class ImageCanvas(QGraphicsView):
 
 
 class EditImageWindow(QMainWindow):
-
     on_saved = Signal()
     on_exit = Signal()
 
@@ -487,17 +545,17 @@ class EditImageWindow(QMainWindow):
         self.enabledOnSelection.append(delete_button)
 
         spacing = QLineEdit()
-        spacing.setText(str(self.scene.posConstr.spacing))
+        spacing.setText(str(self.scene.posConstraint.spacing))
         spacing.setValidator(QIntValidator(bottom=0))
         spacing.returnPressed.connect(lambda: self.scene.setSpacing(int(spacing.text())))
         spacing.setMaximumWidth(30)
 
         xshift = QSpinBox()
-        xshift.setValue(self.scene.posConstr.xShift)
+        xshift.setValue(self.scene.posConstraint.xShift)
         xshift.valueChanged.connect(lambda v: self.scene.setXGridShift(v))
 
         yshift = QSpinBox()
-        yshift.setValue(self.scene.posConstr.yShift)
+        yshift.setValue(self.scene.posConstraint.yShift)
         yshift.valueChanged.connect(lambda v: self.scene.setYGridShift(v))
 
         lt = QHBoxLayout()
@@ -535,7 +593,8 @@ class EditImageWindow(QMainWindow):
         if len(self.scene.userItems) > 0:
             from pyqode.qt.QtWidgets import QMessageBox
             reply = QMessageBox.question(self, 'Save changes',
-                                               "Do you want to save changes?", QMessageBox.Yes, QMessageBox.No) #QMessageBox.Cancel,
+                                         "Do you want to save changes?", QMessageBox.Yes,
+                                         QMessageBox.No)  # QMessageBox.Cancel,
             if reply == QMessageBox.Yes:
                 self.scene.renderToFile(self.path)
                 self.on_saved.emit()

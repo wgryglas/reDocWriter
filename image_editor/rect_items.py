@@ -16,6 +16,8 @@ def makeStyles():
 class RectSelectionItem(ItemBase):
     def __init__(self, size, constr, style=makeStyles()):
         ItemBase.__init__(self, style)
+        self.setFreeMovable(False)
+
         self.setFlag(ItemBase.ItemIsSelectable)
         self.size = size
         self.constr = constr
@@ -95,7 +97,7 @@ class RectSelectionItem(ItemBase):
 
         self.size = QSizeF(max.x()-min.x(), max.y()-min.y())
 
-        self.posHandle.setPos(-self.posHandle.w / 2 + self.size.width()/2, -self.posHandle.h / 2 + self.size.height()/2)
+        self.posHandle.setPos(self.size.width()/2, self.size.height()/2)
 
         x = min.x()
         y = min.y()
@@ -159,14 +161,11 @@ class RectSelectionItem(ItemBase):
         #     self.setPos(p.x(), p.y())
 
     def dragMove(self, delta, suggestedPosition):
-        pass
-        # self.setPos(self.constr(self.pos() + delta))
+        self.setPos(self.constr(self.pos() + delta))
 
     def clone(self):
         item = RectSelectionItem(self.size, self.constr)
-        p = self.pos()
-        s = self.constr.spacing
-        item.setPos(p.x()+5*s, p.y()+5*s)
+        item.setPos(self.x, self.y)
         return item
 
 
@@ -186,13 +185,21 @@ class EllipseSelectionItem(RectSelectionItem):
         qPainter.drawEllipse(0, 0, self.width, self.height)
 
     def clone(self):
-        return EllipseSelectionItem(self.size, self.constr)
+        item = EllipseSelectionItem(self.size, self.constr)
+        item.setPos(self.x, self.y)
+        return item
+
+
+def makeNumberStyle():
+    styles = ItemStyles(background_color=ItemStyles.markColor, antialiased=True)
+    styles.set_style('select', background_color=ItemStyles.markColor)
+    return styles
 
 
 class RectNumberedItem(RectSelectionItem):
     def __init__(self, size, constr, numberProvider):
         RectSelectionItem.__init__(self, size, constr)
-        self.number = AnchoredNumberItem(numberProvider, constr, self.positionNumber)
+        self.number = AnchoredNumberItem(numberProvider, constr, self.positionNumber, style=makeNumberStyle())
         self.number.setParentItem(self)
         self.activeShift = 0
         self.numberShift = -5
@@ -201,7 +208,7 @@ class RectNumberedItem(RectSelectionItem):
     def setSelected(self, flag):
         if flag:
             self.number.setSelected(True)
-        RectSelectionItem.setSelected(flag)
+        RectSelectionItem.setSelected(self, flag)
 
     def paintBorder(self, qPainter):
         RectSelectionItem.paintBorder(self, qPainter)
@@ -235,4 +242,6 @@ class RectNumberedItem(RectSelectionItem):
         # self.scene().update()
 
     def clone(self):
-        return RectNumberedItem(self.size, self.constr, self.number.numberProvider)
+        item = RectNumberedItem(self.size, self.constr, self.number.numberProvider)
+        item.setPos(self.x, self.y)
+        return item

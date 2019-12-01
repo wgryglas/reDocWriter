@@ -112,6 +112,7 @@ class ExtensionArrow(ItemBase):
 def makeHandleStyle():
     styles = ItemStyles(background_color=ItemStyles.markColor)
     styles.set_style('hover', background_color=ItemStyles.hoverColor)
+    styles.set_style('select', background_color=ItemStyles.markColor)
     return styles
 
 
@@ -126,13 +127,32 @@ class MoveHandle(ItemBase):
         # self.setFlag(QGraphicsItem.ITem)
         self.setAcceptHoverEvents(True)
 
+        self.translation = QTransform()
+        self.scale = QTransform()
+
     def boundingRect(self, *args, **kwargs):
-        return QRectF(0, 0, self.w, self.h)
+        return QRectF(-self.w/2, -self.h/2, self.w, self.h)
+
+    def updateTransform(self):
+        self.setTransform(self.scale * self.translation)
+
+    def setPos(self, x, y):
+        self.translation.reset()
+        self.translation.translate(x, y)
+        self.updateTransform()
 
     def paint(self, qPainter, qStyleOptionGraphicsItem, qWidget):
         style = self.getStyle()
         if style.background_color:
             qPainter.fillRect(self.boundingRect(), style.background_color)
+
+    def setSizeScale(self, scale):
+        self.scale.reset()
+        self.scale.scale(scale, scale)
+        self.updateTransform()
+
+    def isConstantSize(self):
+        return True
 
     def dragMove(self, delta, suggestedPosition):
         self.on_drag(delta, suggestedPosition)

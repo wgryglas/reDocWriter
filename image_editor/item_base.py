@@ -6,6 +6,7 @@ class ItemBase(QGraphicsItem):
         QGraphicsItem.__init__(self)
         self._isEdited_ = False
         self._isDragged_ = False
+        self._isMovable_ = True
         self._styles_ = styles
 
     def getStyle(self):
@@ -22,6 +23,12 @@ class ItemBase(QGraphicsItem):
 
     def isDragged(self):
         return self._isDragged_
+
+    def setFreeMovable(self, flag):
+        self._isMovable_ = flag
+
+    def isFreeMovable(self):
+        return self._isMovable_
 
     def setDragged(self, value):
         self._isDragged_ = value

@@ -8,6 +8,7 @@ from rect_postion import CornerPosition
 
 def makeStyle():
     styles = ItemStyles(background_color=ItemStyles.markColor, antialiased=True)
+    styles.set_style('select', background_color=ItemStyles.selColor)
     styles.set_style('hover', background_color=ItemStyles.hoverColor)
     return styles
 
@@ -57,7 +58,7 @@ class NumberItem(ItemBase):
 
         if style.border_color:
             qPainter.setPen(style.border_color)
-            qPainter.drawPath(path, style.border_color)
+            qPainter.drawPath(path)
 
         if style.foreground_color:
             qPainter.setPen(style.foreground_color)
@@ -78,25 +79,32 @@ class NumberItem(ItemBase):
 
 class AnchoredNumberItem(NumberItem):
 
-    dragStrength = 50
+    dragStrength = 3
 
-    def __init__(self, numberProvider, constr, on_position_change, corner=CornerPosition.top_left):
-        NumberItem.__init__(self, numberProvider, constr)
+    def __init__(self, numberProvider, constr, on_position_change, corner=CornerPosition.top_left, style=None):
+        NumberItem.__init__(self, numberProvider, constr, style)
         self.corner = corner
         self._change_trigger_ = on_position_change
+        self.scaleFactor = 1.0
+
+    def setSizeScale(self, scale):
+        self.scaleFactor = 1.0 * scale
 
     def dragMove(self, delta, suggestedPosition):
+
         horizontal = abs(delta.x()) > abs(delta.y())
 
         corner = None
 
-        if horizontal and delta.x() > AnchoredNumberItem.dragStrength:
+        treshhold = AnchoredNumberItem.dragStrength * self.scaleFactor
+
+        if horizontal and delta.x() > treshhold:
             corner = self.corner.toRight
-        elif horizontal and delta.x() < -AnchoredNumberItem.dragStrength:
+        elif horizontal and delta.x() < -treshhold:
             corner = self.corner.toLeft
-        elif not horizontal and delta.y() > AnchoredNumberItem.dragStrength:
+        elif not horizontal and delta.y() > treshhold:
             corner = self.corner.toDown
-        elif not horizontal and delta.y() < -AnchoredNumberItem.dragStrength:
+        elif not horizontal and delta.y() < -treshhold:
             corner = self.corner.toUp
 
         if corner is not None:
