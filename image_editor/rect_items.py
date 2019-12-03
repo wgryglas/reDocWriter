@@ -6,7 +6,7 @@ from handle_itemes import ExtensionArrow, MoveHandle
 from item_style import ItemStyles, GraphicsStyle
 from number_item import AnchoredNumberItem
 from rect_postion import CornerPosition
-
+from properties import FloatProperty
 
 def makeStyles():
     styles = ItemStyles(border_color=ItemStyles.markColor)
@@ -47,6 +47,12 @@ class RectSelectionItem(ItemBase):
 
         for a in self.activeItems:
             a.setVisible(False)
+
+        self._properties_.set([FloatProperty('x', lambda v: self.setPos(v, self.y), lambda: self.x),
+                               FloatProperty('y', lambda v: self.setPos(self.x, v), lambda: self.y),
+                               FloatProperty('width', lambda v: self.setRect(self.x, self.y, v, self.height), lambda: self.width),
+                               FloatProperty('height', lambda v: self.setRect(self.x, self.y, self.width, v), lambda: self.height)])
+
 
     def isEditable(self):
         return True
@@ -108,6 +114,12 @@ class RectSelectionItem(ItemBase):
             self.setPos(x, y)
         else:
             self.setPos(x, y)
+
+        self._properties_.changed.emit()
+
+    def setPos(self, *args):
+        ItemBase.setPos(self, *args)
+        self._properties_.changed.emit()
 
     @property
     def x(self):
@@ -204,6 +216,9 @@ class RectNumberedItem(RectSelectionItem):
         self.activeShift = 0
         self.numberShift = -5
         self.positionNumber()
+
+        from properties import IntProperty
+        self.properties().append(IntProperty('Number', lambda v: self.number.setNunber(v), lambda: self.number.number))
 
     def setSelected(self, flag):
         if flag:

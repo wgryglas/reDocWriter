@@ -134,6 +134,7 @@ class DuplicateDrag(DragStyle):
 
 
 class ImageScene(QGraphicsScene):
+    on_item_edit = Signal(object)
 
     def __init__(self, imageUrl=None):
         QGraphicsScene.__init__(self)
@@ -164,6 +165,7 @@ class ImageScene(QGraphicsScene):
         self.editedItem = None
 
         self.pressEvaluated = False
+
 
     def setPickEnabled(self, flag):
         self._is_pick_enabled_ = flag
@@ -304,6 +306,7 @@ class ImageScene(QGraphicsScene):
             clickItems = self._get_click_items(e)
             if len(clickItems) == 1 and clickItems[0].isEditable():
                 self.setItemEdited(clickItems[0])
+                self.on_item_edit.emit(clickItems[0])
 
     def mousePressEvent(self, e):
         pressItems = self._get_click_items(e)
@@ -317,6 +320,7 @@ class ImageScene(QGraphicsScene):
             return
 
         QGraphicsScene.mousePressEvent(self, e)
+
         self.draggingItems = dict()
 
         selItems = self.selectedItems()
@@ -334,7 +338,6 @@ class ImageScene(QGraphicsScene):
         self.dragItems = style.initDrag(selItems, e.modifiers(), e.buttons())
         for item in self.dragItems:
             item.setDragged(True)
-
         style.setStartPoint(e.scenePos())
 
     def mouseMoveEvent(self, event):
@@ -378,6 +381,7 @@ class ImageScene(QGraphicsScene):
         if self.editedItem:
             self.editedItem.setEdited(False)
             self.editedItem = None
+            self.on_item_edit.emit(None)
 
     def renderToFile(self, path):
         from pyqode.qt.QtGui import QImage
@@ -485,6 +489,11 @@ class EditImageWindow(QMainWindow):
         self.path = path
         self.scene = ImageScene(imageUrl=path)
         self.view = ImageCanvas(self.scene)
+        self.leftPanel = self.configureOverlyPanel(QWidget())
+        self.editLayout = QVBoxLayout()
+        self.editLayout.setSpacing(0)
+        self.leftPanel.setLayout(self.editLayout)
+        self.leftPanel.setVisible(True)
 
         self.numberIter = 1
 
@@ -493,6 +502,8 @@ class EditImageWindow(QMainWindow):
         self.do_layout()
 
         self.scene.selectionChanged.connect(self.update_enabled)
+
+        self.scene.on_item_edit.connect(self.showProperties)
 
     def nextNumber(self):
         v = self.numberIter
@@ -503,6 +514,50 @@ class EditImageWindow(QMainWindow):
         sel = len(self.scene.selectedElements()) > 0
         for button in self.enabledOnSelection:
             button.setEnabled(sel)
+
+    def configureOverlyPanel(self, widget):
+        widget.setStyleSheet('''
+                             background-color:white;
+                             border-radius:10px;
+                            ''')
+        from pyqode.qt.QtWidgets import QGraphicsDropShadowEffect
+        effect = QGraphicsDropShadowEffect()
+        effect.setBlurRadius(10)
+        effect.setXOffset(0)
+        effect.setYOffset(0)
+        widget.setGraphicsEffect(effect)
+        widget.setVisible(False)
+        return widget
+
+    def showProperties(self, item):
+
+        for i in reversed(range(self.editLayout.count())):
+            self.editLayout.itemAt(i).widget().setParent(None)
+
+        self.leftPanel.setVisible(item is not None)
+
+        if item is None:
+            return
+
+        close = QPushButton('x')
+        close.clicked.connect(lambda: self.scene.emptyPress())
+        l = QHBoxLayout()
+        l.addStretch(1)
+        l.addWidget(close)
+        w = QWidget()
+        w.setLayout(l)
+        self.editLayout.addWidget(w)
+
+        from properties import PropertyWidget
+
+        for p in item.properties():
+            rowW = PropertyWidget(item.properties(), p.name)
+            rowW.edit.setStyleSheet('''
+                QLineEdit { border: 1px solid gray; padding-left:5px; padding-right:5px}
+                QLineEdit:focus { border: 1.5px solid lightblue; padding-left:5px; padding-right:5px}
+            ''')
+            rowW.edit.setMaximumWidth(80)
+            self.editLayout.addWidget(rowW)
 
     def layout_buttons(self):
         import icons
@@ -581,9 +636,21 @@ class EditImageWindow(QMainWindow):
 
     def do_layout(self):
         panel = QWidget()
+
         bar = self.layout_buttons()
+
+        topBottom = QVBoxLayout()
+        leftToRight = QHBoxLayout()
+        leftToRight.addWidget(self.leftPanel)
+        leftToRight.addStretch(10)
+        topBottom.addStretch(1)
+        topBottom.addLayout(leftToRight)
+        topBottom.addStretch(1)
+        self.view.setLayout(topBottom)
+
         lt = QVBoxLayout()
         lt.addWidget(bar)
+        #lt.addLayout(leftToRight)
         lt.addWidget(self.view)
         panel.setLayout(lt)
 

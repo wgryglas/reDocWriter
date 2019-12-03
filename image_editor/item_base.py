@@ -1,4 +1,5 @@
 from pyqode.qt.QtWidgets import QGraphicsItem
+from properties import ItemProperties
 
 
 class ItemBase(QGraphicsItem):
@@ -8,6 +9,7 @@ class ItemBase(QGraphicsItem):
         self._isDragged_ = False
         self._isMovable_ = True
         self._styles_ = styles
+        self._properties_ = ItemProperties()
 
     def getStyle(self):
         return self._styles_.get(self)
@@ -41,3 +43,7 @@ class ItemBase(QGraphicsItem):
 
     def dragMove(self, localDelta, totalDelta):
         pass
+
+    def properties(self):
+        return self._properties_
+

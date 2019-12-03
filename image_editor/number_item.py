@@ -25,6 +25,10 @@ class NumberItem(ItemBase):
         self.margin = 0
         self.constr = constr
 
+    def setNunber(self, n):
+        self.number = n
+        self.update()
+
     def dragMove(self, delta, suggestedPosition):
         self.setPos(self.constr(self.pos() + delta))
 
@@ -75,6 +79,10 @@ class NumberItem(ItemBase):
         s = self.constr.spacing
         item.setPos(p.x()+5*s, p.y()+5*s)
         return item
+
+    def properties(self):
+        from properties import IntProperty
+        return [IntProperty('Number', lambda v: self.setNunber(v), lambda: self.number)]
 
 
 class AnchoredNumberItem(NumberItem):
