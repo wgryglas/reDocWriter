@@ -11,6 +11,9 @@ class ItemBase(QGraphicsItem):
         self._styles_ = styles
         self._properties_ = ItemProperties()
 
+    def forceDefaultStyle(self, flag):
+        self._styles_.setStatesEnabled(not flag)
+
     def getStyle(self):
         return self._styles_.get(self)
 
@@ -22,9 +25,6 @@ class ItemBase(QGraphicsItem):
 
     def isEditable(self):
         return False
-
-    def isDragged(self):
-        return self._isDragged_
 
     def setFreeMovable(self, flag):
         self._isMovable_ = flag
@@ -41,7 +41,16 @@ class ItemBase(QGraphicsItem):
     def setSizeScale(self, scale):
         pass
 
+    def isDragged(self):
+        return self._isDragged_
+
+    def dragStart(self, startPoint):
+        pass
+
     def dragMove(self, localDelta, totalDelta):
+        pass
+
+    def dragEnd(self):
         pass
 
     def properties(self):

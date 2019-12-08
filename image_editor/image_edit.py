@@ -338,6 +338,8 @@ class ImageScene(QGraphicsScene):
         self.dragItems = style.initDrag(selItems, e.modifiers(), e.buttons())
         for item in self.dragItems:
             item.setDragged(True)
+            item.dragStart(e.scenePos())
+
         style.setStartPoint(e.scenePos())
 
     def mouseMoveEvent(self, event):
@@ -363,6 +365,8 @@ class ImageScene(QGraphicsScene):
 
         for item in self.dragItems:
             item.setDragged(False)
+            item.dragEnd()
+
         self.dragItems = []
 
         self.pressPos = None
@@ -390,6 +394,11 @@ class ImageScene(QGraphicsScene):
             line.setVisible(False)
 
         self.clearSelection()
+        self.emptyPress()
+
+        for i in self.userItems:
+            i.forceDefaultStyle(True)
+
         self.setSceneRect(self.itemsBoundingRect())
 
         image = QImage(self.sceneRect().size().toSize(), QImage.Format_ARGB32)
@@ -404,6 +413,10 @@ class ImageScene(QGraphicsScene):
 
         for line in self.gridLines:
             line.setVisible(True)
+
+        for i in self.userItems:
+            i.forceDefaultStyle(False)
+
 
     def deleteSelected(self):
         for e in self.selectedElements():
@@ -477,12 +490,18 @@ class ImageCanvas(QGraphicsView):
     def saveWidgetAs(self, path):
         self.scene().deselectAll()
         self.fitInView()
-        QPixmap.grabWidget(self).save(path)
+        self.scene().renderToFile(path)
+        #QPixmap.grabWidget(self).save(path)
 
 
 class EditImageWindow(QMainWindow):
     on_saved = Signal()
     on_exit = Signal()
+
+    editStyle = '''
+        QLineEdit { border-radius:10px; border: 1px solid gray; padding-left:5px; padding-right:5px}
+        QLineEdit:focus { border: 1.5px solid lightblue; padding-left:5px; padding-right:5px}
+    '''
 
     def __init__(self, path):
         QMainWindow.__init__(self)
@@ -493,7 +512,7 @@ class EditImageWindow(QMainWindow):
         self.editLayout = QVBoxLayout()
         self.editLayout.setSpacing(0)
         self.leftPanel.setLayout(self.editLayout)
-        self.leftPanel.setVisible(True)
+        self.leftPanel.setVisible(False)
 
         self.numberIter = 1
 
@@ -517,9 +536,13 @@ class EditImageWindow(QMainWindow):
 
     def configureOverlyPanel(self, widget):
         widget.setStyleSheet('''
-                             background-color:white;
-                             border-radius:10px;
+                             QWidget {
+                                 background-color:white;
+                                 border-radius:10px;
+                             }
                             ''')
+        # widget.setAutoFillBackground(True)
+        # widget.setAttribute()
         from pyqode.qt.QtWidgets import QGraphicsDropShadowEffect
         effect = QGraphicsDropShadowEffect()
         effect.setBlurRadius(10)
@@ -539,25 +562,49 @@ class EditImageWindow(QMainWindow):
         if item is None:
             return
 
-        close = QPushButton('x')
-        close.clicked.connect(lambda: self.scene.emptyPress())
-        l = QHBoxLayout()
-        l.addStretch(1)
-        l.addWidget(close)
-        w = QWidget()
-        w.setLayout(l)
-        self.editLayout.addWidget(w)
+        # close = QPushButton('x')
+        # close.clicked.connect(lambda: self.scene.emptyPress())
+        # l = QHBoxLayout()
+        # l.addStretch(1)
+        # l.addWidget(close)
+        # w = QWidget()
+        # w.setLayout(l)
+        # self.editLayout.addWidget(w)
 
         from properties import PropertyWidget
+        from widgets import horizontalSeparator, hoverActiveButton
 
         for p in item.properties():
             rowW = PropertyWidget(item.properties(), p.name)
-            rowW.edit.setStyleSheet('''
-                QLineEdit { border: 1px solid gray; padding-left:5px; padding-right:5px}
-                QLineEdit:focus { border: 1.5px solid lightblue; padding-left:5px; padding-right:5px}
-            ''')
+            rowW.edit.setStyleSheet(EditImageWindow.editStyle)
             rowW.edit.setMaximumWidth(80)
             self.editLayout.addWidget(rowW)
+
+        if isinstance(item, RectSelectionItem):
+            insetInput = QLineEdit()
+            insetInput.setStyleSheet(EditImageWindow.editStyle)
+            insetInput.setValidator(QIntValidator())
+            insetInput.setMaximumWidth(40)
+            insetInput.setText('1')
+            insetInput.setTextMargins(6, 0, 0, 0)
+            rowLt = QHBoxLayout()
+            bt = hoverActiveButton("Insert Insets")
+            bt.clicked.connect(lambda: self.appendInsets(int(insetInput.text()), item))
+
+            rowLt.addWidget(insetInput)
+            rowLt.addStretch(10)
+            rowLt.addWidget(bt)
+            panel = QWidget()
+            panel.setLayout(rowLt)
+
+
+            self.editLayout.addWidget(horizontalSeparator())
+            self.editLayout.addWidget(panel)
+
+    def appendInsets(self, insets, item):
+        p = item.pos()
+        s = item.size
+        item.setRect(p.x()-insets, p.y()-insets, s.width()+2*insets, s.height()+2*insets)
 
     def layout_buttons(self):
         import icons
@@ -675,11 +722,10 @@ class EditImageWindow(QMainWindow):
 def main():
     from pyqode.qt.QtWidgets import QApplication
     import sys
-    from handle_itemes import ExtensionArrow
 
     app = QApplication(sys.argv)
-    win = EditImageWindow("/home/wgryglas/test-edit.png")
-
+    #win = EditImageWindow("/home/wgryglas/test-edit.png")
+    win = EditImageWindow("/home/wgryglas/Downloads/car-17-boundary-conditions-right-turbulence.png")
     win.show()
 
     sys.exit(app.exec_())

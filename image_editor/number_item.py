@@ -1,9 +1,9 @@
-from pyqode.qt.QtCore import Qt, QRectF
+from pyqode.qt.QtCore import Qt, QRectF, QPointF
 from pyqode.qt.QtWidgets import QGraphicsItem, QPen, QColor, QPainter, QPainterPath
 
 from item_style import ItemStyles
 from item_base import ItemBase
-from rect_postion import CornerPosition
+from enums import RectAnchors
 
 
 def makeStyle():
@@ -21,7 +21,8 @@ class NumberItem(ItemBase):
         self.setFlag(QGraphicsItem.ItemSendsGeometryChanges, True)
         self.number = numberProvider.nextNumber()
         self.numberProvider = numberProvider
-        self.size = 40
+        self.size = 30
+        self.fontSize = 14
         self.margin = 0
         self.constr = constr
 
@@ -34,25 +35,29 @@ class NumberItem(ItemBase):
 
     def boundingRect(self, *args, **kwargs):
         s = self.size + 2 * self.margin
-        x = - self.margin
-        y = - self.margin
+        x = - self.margin - self.size / 2
+        y = - self.margin - self.size / 2
         return QRectF(x, y, s, s)
 
     def paint(self, qPainter, qStyleOptionGraphicsItem, qWidget):
 
         style = self.getStyle()
 
+        qPainter.save()
+
         if style.antialiased:
             qPainter.setRenderHint(QPainter.Antialiasing, True)
 
         qPainter.setRenderHint(QPainter.TextAntialiasing, True)
 
-        f = qPainter.font()
-        f.setPointSize(16)
+        # f = qPainter.font()
+        from pyqode.qt.QtWidgets import QFont
+        f = QFont('Open Sans', self.fontSize)
+        f.setPointSize(self.fontSize)
         qPainter.setFont(f)
 
-        x = 0
-        y = 0
+        x = -self.size / 2 - self.margin
+        y = -self.size / 2 - self.margin
         path = QPainterPath()
         path.addRoundedRect(x, y, self.size, self.size, self.size, self.size)
 
@@ -73,6 +78,8 @@ class NumberItem(ItemBase):
             s = self.size
             qPainter.drawRect(x, y, s, s)
 
+        qPainter.restore()
+
     def clone(self):
         item = NumberItem(self.numberProvider, self.constr, self.styles)
         p = self.pos()
@@ -89,34 +96,55 @@ class AnchoredNumberItem(NumberItem):
 
     dragStrength = 3
 
-    def __init__(self, numberProvider, constr, on_position_change, corner=CornerPosition.top_left, style=None):
+    def __init__(self, numberProvider, constr, on_corner_change, sizeProvider, corner=RectAnchors.LeftTop, style=None):
         NumberItem.__init__(self, numberProvider, constr, style)
         self.corner = corner
-        self._change_trigger_ = on_position_change
+        self._change_trigger_ = on_corner_change
         self.scaleFactor = 1.0
+        self.sizeProvider = sizeProvider
+        self.dragCount = QPointF()
 
     def setSizeScale(self, scale):
         self.scaleFactor = 1.0 * scale
 
-    def dragMove(self, delta, suggestedPosition):
+    def dragStart(self, startPoint):
+        print 'clearing drag value'
+        self.dragCount = QPointF()
 
-        horizontal = abs(delta.x()) > abs(delta.y())
+    def dragMove(self, delta, totalDelta):
+        d = delta
 
+        if self.dragCount.x() == self.dragCount.y():
+            horizontal = abs(d.x()) > abs(d.y())
+        else:
+            horizontal = abs(self.dragCount.x()) > abs(self.dragCount.y())
+
+        self.dragCount = self.dragCount + d
+        drag = self.dragCount.x() if horizontal else self.dragCount.y()
         corner = None
 
-        treshhold = AnchoredNumberItem.dragStrength * self.scaleFactor
+        # treshhold = AnchoredNumberItem.dragStrength * self.scaleFactor #abs(totalDelta.x()) if horizontal else abs(totalDelta.y()) #
+        # treshhold = treshhold * AnchoredNumberItem.dragStrength
 
-        if horizontal and delta.x() > treshhold:
-            corner = self.corner.toRight
-        elif horizontal and delta.x() < -treshhold:
-            corner = self.corner.toLeft
-        elif not horizontal and delta.y() > treshhold:
-            corner = self.corner.toDown
-        elif not horizontal and delta.y() < -treshhold:
-            corner = self.corner.toUp
+        treshold = self.sizeProvider().width()/2 if horizontal else self.sizeProvider().height()/2
+        # print drag, treshold
+
+        if horizontal and drag > treshold:
+            corner = RectAnchors.toRight(self.corner)
+            self.dragCount = QPointF()
+        elif horizontal and drag < -treshold:
+            corner = RectAnchors.toLeft(self.corner)
+            self.dragCount = QPointF()
+        elif not horizontal and drag > treshold:
+            corner = RectAnchors.toBottom(self.corner)
+            self.dragCount = QPointF()
+        elif not horizontal and drag < -treshold:
+            corner = RectAnchors.toUp(self.corner)
+            self.dragCount = QPointF()
 
         if corner is not None:
             self.corner = corner
+            # print "Corner changed", corner
             self._change_trigger_()
 
     # def setSelected(self, *args, **kwargs):

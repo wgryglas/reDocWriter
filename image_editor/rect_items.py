@@ -5,8 +5,9 @@ from item_base import ItemBase
 from handle_itemes import ExtensionArrow, MoveHandle
 from item_style import ItemStyles, GraphicsStyle
 from number_item import AnchoredNumberItem
-from rect_postion import CornerPosition
+from enums import RectAnchors
 from properties import FloatProperty
+
 
 def makeStyles():
     styles = ItemStyles(border_color=ItemStyles.markColor)
@@ -140,8 +141,9 @@ class RectSelectionItem(ItemBase):
     def boundingRect(self, *args, **kwargs):
         return QRectF(0, 0, self.size.width(), self.size.height())
 
-    def paintBorder(self, qPainter):
-        qPainter.drawRect(0, 0, self.width, self.height)
+    def paintBorder(self, qPainter, st):
+        w = st.width
+        qPainter.drawRect(-w, -w, self.width+w, self.height+w)
 
     def paintBackground(self, qPainter):
         qPainter.fillRect(0, 0, self.width, self.height)
@@ -153,6 +155,9 @@ class RectSelectionItem(ItemBase):
         return sel
 
     def paint(self, qPainter, qStyleOptionGraphicsItem, qWidget):
+
+        qPainter.save()
+
         qPainter.setRenderHint(QPainter.Antialiasing, True)
         qPainter.setRenderHint(QPainter.TextAntialiasing, True)
 
@@ -163,7 +168,7 @@ class RectSelectionItem(ItemBase):
 
         if s.border_color:
             s.configure(qPainter, GraphicsStyle.BORDER)
-            self.paintBorder(qPainter)
+            self.paintBorder(qPainter, s)
 
         # force redraw on child selection changed (no need now, currently update on mouse move)
         # if need_redraw:
@@ -171,6 +176,8 @@ class RectSelectionItem(ItemBase):
         #     p = self.pos()
         #     self.setPos(p.x()-1, p.y()-1)
         #     self.setPos(p.x(), p.y())
+        qPainter.restore()
+
 
     def dragMove(self, delta, suggestedPosition):
         self.setPos(self.constr(self.pos() + delta))
@@ -193,8 +200,8 @@ class EllipseSelectionItem(RectSelectionItem):
     def paintBackground(self, qPainter):
         qPainter.fillElipse(0, 0, self.width, self.height)
 
-    def paintBorder(self, qPainter):
-        qPainter.drawEllipse(0, 0, self.width, self.height)
+    def paintBorder(self, qPainter, st):
+        qPainter.drawEllipse(-st.width, -st.width, self.width+st.width, self.height+st.width)
 
     def clone(self):
         item = EllipseSelectionItem(self.size, self.constr)
@@ -210,11 +217,11 @@ def makeNumberStyle():
 
 class RectNumberedItem(RectSelectionItem):
     def __init__(self, size, constr, numberProvider):
-        RectSelectionItem.__init__(self, size, constr)
-        self.number = AnchoredNumberItem(numberProvider, constr, self.positionNumber, style=makeNumberStyle())
-        self.number.setParentItem(self)
+        self.number = AnchoredNumberItem(numberProvider, constr, self.positionNumber, lambda: self.boundingRect().size(), style=makeNumberStyle())
         self.activeShift = 0
-        self.numberShift = -5
+        self.borderWidth = 3
+        RectSelectionItem.__init__(self, size, constr)
+        self.number.setParentItem(self)
         self.positionNumber()
 
         from properties import IntProperty
@@ -225,26 +232,36 @@ class RectNumberedItem(RectSelectionItem):
             self.number.setSelected(True)
         RectSelectionItem.setSelected(self, flag)
 
-    def paintBorder(self, qPainter):
-        RectSelectionItem.paintBorder(self, qPainter)
-
     def setEdited(self, flag):
         RectSelectionItem.setEdited(self, flag)
         self.activeNumber(flag)
 
-    def positionNumber(self):
-        s = self.activeShift + self.numberShift
-        if self.number.corner == CornerPosition.top_left:
-            self.number.setPos(-self.number.size-s, -self.number.size-s)
-        elif self.number.corner == CornerPosition.top_right:
-            self.number.setPos(self.width+s, -self.number.size-s)
-        elif self.number.corner == CornerPosition.bottom_left:
-            self.number.setPos(-self.number.size-s, self.height+s)
-        else:
-            self.number.setPos(self.width+s, self.height+s)
+    def setRect(self, x, y, w, h):
+        RectSelectionItem.setRect(self, x, y, w, h)
+        self.positionNumber()
 
-        if self.scene():
-            self.scene().update()
+    def positionNumber(self):
+        from numpy import sqrt
+        rect = self.boundingRect()
+        ins = self.borderWidth
+        rect.setRect(rect.x()-ins-1.5, rect.y()-ins-1.5,
+                     rect.width()+2*ins, rect.height()+2*ins)
+        pos = RectAnchors.positionOnRect(rect, self.number.corner)
+        dir = RectAnchors.outDir(self.number.corner)
+        s = self.activeShift + self.number.size / 2
+        self.number.setPos(pos.x() + dir.x()*s, pos.y() + dir.y()*s)
+
+        #
+        # if self.number.corner == CornerPosition.top_left:
+        #     self.number.setPos(-self.number.size-s, -self.number.size-s)
+        # elif self.number.corner == CornerPosition.top_right:
+        #     self.number.setPos(self.width+s, -self.number.size-s)
+        # elif self.number.corner == CornerPosition.bottom_left:
+        #     self.number.setPos(-self.number.size-s, self.height+s)
+        # else:
+        #     self.number.setPos(self.width+s, self.height+s)
+        # if self.scene():
+        #     self.scene().update()
 
     def activeNumber(self, apart):
         self.activeShift = 0 if not apart else self.number.size / 2

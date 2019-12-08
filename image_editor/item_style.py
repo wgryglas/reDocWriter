@@ -97,7 +97,14 @@ class ItemStyles:
 
             self.set_style(state, **override)
 
+        self.statesEnabled = True
+
+    def setStatesEnabled(self, flag):
+        self.statesEnabled = flag
+
     def get(self, item):
+        if not self.statesEnabled:
+            return self.states.get_state('default')
         if item.isEdited():
             return self.states.get_state('edit')
         elif not item.isEnabled():
