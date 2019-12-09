@@ -25,19 +25,19 @@ class RectSelectionItem(ItemBase):
 
         self.setAcceptHoverEvents(True)
 
-        down = ExtensionArrow('down', lambda v: self.setRect(self.x, self.y, self.width, self.height+v))
+        down = ExtensionArrow('down', lambda: self.height, lambda v: self.setRect(self.x, self.y, self.width, v))
         down.setParentItem(self)
 
-        up = ExtensionArrow('up', lambda v: self.setRect(self.x, self.y-v, self.width, self.height+v))
+        up = ExtensionArrow('up', lambda: self.height, lambda v: self.setRect(self.x, self.y+self.height-v, self.width, v))
         up.setParentItem(self)
 
-        left = ExtensionArrow('left', lambda v: self.setRect(self.x-v, self.y, self.width+v, self.height))
+        left = ExtensionArrow('left', lambda: self.width, lambda v: self.setRect(self.x+self.width-v, self.y, v, self.height))
         left.setParentItem(self)
 
-        right = ExtensionArrow('right', lambda v: self.setRect(self.x, self.y, self.width+v, self.height))
+        right = ExtensionArrow('right', lambda: self.width, lambda v: self.setRect(self.x, self.y, v, self.height))
         right.setParentItem(self)
 
-        self.posHandle = MoveHandle(lambda delta, sugessted: self.setPos(self.constr(self.pos() + delta)))
+        self.posHandle = MoveHandle(lambda: self.pos(), lambda pos: self.setPos(self.constr(pos)))
         self.posHandle.setParentItem(self)
 
         self.arrows = [left, right, up, down]
@@ -53,7 +53,6 @@ class RectSelectionItem(ItemBase):
                                FloatProperty('y', lambda v: self.setPos(self.x, v), lambda: self.y),
                                FloatProperty('width', lambda v: self.setRect(self.x, self.y, v, self.height), lambda: self.width),
                                FloatProperty('height', lambda v: self.setRect(self.x, self.y, self.width, v), lambda: self.height)])
-
 
     def isEditable(self):
         return True
@@ -81,40 +80,37 @@ class RectSelectionItem(ItemBase):
     def dragRight(self, v):
         self.setSize(self.width+v, self.height)
 
+    def setConstrainedPosition(self, rawPoint):
+        pnt = self.constr(rawPoint)
+        self.setPos(pnt.x(), pnt.y())
+
     def setRect(self, x, y, w, h):
         # if self.x == x and self.y == y and self.width == w and self.height == h:
         #     return
-        if w <= 0:
-            w = self.width
-
-        if h <= 0:
-            h = self.height
-
-        # self.arrows[0].setPos(0, (h-self.arrows[0].rect().height())/2 )
-        # self.arrows[1].setPos(w, (h-self.arrows[1].rect().height())/2 )
-        # self.arrows[2].setPos((w-self.arrows[2].rect().width())/2, 0)
-        # self.arrows[3].setPos((w-self.arrows[3].rect().width())/2, h)
-        self.arrows[0].setPos(0, h/2)
-        self.arrows[1].setPos(w, h/2)
-        self.arrows[2].setPos(w/2, 0)
-        self.arrows[3].setPos(w/2, h)
+        if w <= 0 or h <= 0:
+            return
 
         min = self.constr(QPointF(x, y))
         max = self.constr(QPointF(x+w, y+h))
 
         self.size = QSizeF(max.x()-min.x(), max.y()-min.y())
 
+        self.arrows[0].setPos(0, self.height / 2)
+        self.arrows[1].setPos(self.width, self.height / 2)
+        self.arrows[2].setPos(self.width / 2, 0)
+        self.arrows[3].setPos(self.width / 2, self.height)
+
         self.posHandle.setPos(self.size.width()/2, self.size.height()/2)
 
         x = min.x()
         y = min.y()
 
-        #force redraw by chaning position
-        if self.x == x and self.y == y:
-            self.setPos(x-1, y-1)
-            self.setPos(x, y)
-        else:
-            self.setPos(x, y)
+        # #force redraw by chaning position
+        # if self.x == x and self.y == y:
+        #     self.setPos(x-1, y-1)
+        #     self.setPos(x, y)
+        # else:
+        self.setPos(x, y)
 
         self._properties_.changed.emit()
 
@@ -139,7 +135,7 @@ class RectSelectionItem(ItemBase):
         return self.size.height()
 
     def boundingRect(self, *args, **kwargs):
-        return QRectF(0, 0, self.size.width(), self.size.height())
+        return QRectF(0, 0, self.width, self.height)
 
     def paintBorder(self, qPainter, st):
         w = st.width
@@ -158,9 +154,8 @@ class RectSelectionItem(ItemBase):
 
         qPainter.save()
 
-        qPainter.setRenderHint(QPainter.Antialiasing, True)
-        qPainter.setRenderHint(QPainter.TextAntialiasing, True)
-
+        # qPainter.setRenderHint(QPainter.Antialiasing, True)
+        # qPainter.setRenderHint(QPainter.TextAntialiasing, True)
         s = self.getStyle()
         if s.background_color:
             s.configure(qPainter, GraphicsStyle.BACKGROUND)

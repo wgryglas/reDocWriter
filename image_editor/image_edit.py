@@ -12,20 +12,14 @@ class PosConstraint:
         self.xShift = 0
         self.yShift = 0
 
+    def round(self, val, shift):
+        v = val - shift
+        return int(v - (v % self.spacing) + shift)
+
     def __call__(self, pnt):
         if self.spacing == 0:
             return pnt
-
-        ix = int(pnt.x()) - self.xShift
-        iy = int(pnt.y()) - self.yShift
-        x = (ix / self.spacing) * self.spacing + self.xShift
-        # if ix % self.spacing >= 5:
-        #     x += self.spacing
-        y = (iy / self.spacing) * self.spacing + self.yShift
-        # if iy % self.spacing >= 5:
-        #     y += self.spacing
-
-        return QPointF(x, y)
+        return QPointF(self.round(pnt.x(), self.xShift), self.round(pnt.y(), self.yShift))
 
 
 class DragStyle:
@@ -166,7 +160,6 @@ class ImageScene(QGraphicsScene):
 
         self.pressEvaluated = False
 
-
     def setPickEnabled(self, flag):
         self._is_pick_enabled_ = flag
 
@@ -208,7 +201,7 @@ class ImageScene(QGraphicsScene):
         self.updateGrid()
 
     def updateGrid(self):
-        rect = self.imgItem.boundingRect()
+        rect = self.sceneRect()#self.imgItem.boundingRect()
         w = rect.width()
         h = rect.height()
         spacing = self.posConstraint.spacing
@@ -378,7 +371,7 @@ class ImageScene(QGraphicsScene):
     def updateViewScale(self, scale):
         from item_base import ItemBase
         for item in self.items():
-            if isinstance(item, ItemBase): # and item.isConstantSize()
+            if isinstance(item, ItemBase):
                 item.setSizeScale(scale)
 
     def emptyPress(self):
@@ -416,7 +409,6 @@ class ImageScene(QGraphicsScene):
 
         for i in self.userItems:
             i.forceDefaultStyle(False)
-
 
     def deleteSelected(self):
         for e in self.selectedElements():

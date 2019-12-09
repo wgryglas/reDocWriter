@@ -25,13 +25,17 @@ class NumberItem(ItemBase):
         self.fontSize = 14
         self.margin = 0
         self.constr = constr
+        self.startPoint = QPointF()
 
     def setNunber(self, n):
         self.number = n
         self.update()
 
-    def dragMove(self, delta, suggestedPosition):
-        self.setPos(self.constr(self.pos() + delta))
+    def dragStart(self, startPoint):
+        self.startPoint = self.pos()
+
+    def dragMove(self, delta, totalDelta):
+        self.setPos(self.constr(self.startPoint + totalDelta))
 
     def boundingRect(self, *args, **kwargs):
         s = self.size + 2 * self.margin

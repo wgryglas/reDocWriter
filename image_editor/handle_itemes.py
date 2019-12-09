@@ -20,7 +20,7 @@ def makeArrowStyle():
 
 
 class ExtensionArrow(ItemBase):
-    def __init__(self, orientation, on_drag, style=makeArrowStyle()):
+    def __init__(self, orientation, initial_provider, on_drag, style=makeArrowStyle()):
         ItemBase.__init__(self, style)
         self.image = QGraphicsPixmapItem(QPixmap('/home/wgryglas/Code/Python/reDocsEditor/assets/icons/arrow-down.png'))
         self.image.setParentItem(self)
@@ -28,6 +28,7 @@ class ExtensionArrow(ItemBase):
         self._rect_ = QRectF(0, 0, 0, 0)
         self.sizeScale = 1.0
         self.orientation = orientation
+        self.initProvider = initial_provider
 
         self.posTransform = QTransform()
         self.translationTransform = QTransform()
@@ -39,6 +40,8 @@ class ExtensionArrow(ItemBase):
         self.image.setTransform(QTransform.fromTranslate(-self.imageSize.width() / 2, -self.imageSize.height() / 2))
 
         self.base_rect = QRectF(-15, -7.5, 30, 15)
+
+        self.startValue = 0.0
 
         if orientation == 'up':
             self.orientationTransform.rotate(180)
@@ -98,15 +101,18 @@ class ExtensionArrow(ItemBase):
         self.scaleTransform.scale(scale, scale)
         self.updateTransforms()
 
-    def dragMove(self, delta, suggestedPosition):
+    def dragStart(self, startPoint):
+        self.startValue = self.initProvider()
+
+    def dragMove(self, delta, total):
         if self.orientation == 'up':
-            self.on_drag(-delta.y())
+            self.on_drag(self.startValue - total.y())
         elif self.orientation == 'down':
-            self.on_drag(delta.y())
+            self.on_drag(self.startValue + total.y())
         elif self.orientation == 'left':
-            self.on_drag(-delta.x())
+            self.on_drag(self.startValue - total.x())
         else:
-            self.on_drag(delta.x())
+            self.on_drag(self.startValue + total.x())
 
 
 def makeHandleStyle():
@@ -118,14 +124,16 @@ def makeHandleStyle():
 
 class MoveHandle(ItemBase):
 
-    def __init__(self, on_drag, w=12, h=12, style=None):
+    def __init__(self, initialPointProvider, on_drag, w=12, h=12, style=None):
         ItemBase.__init__(self, style if style else makeHandleStyle())
         self.w = w
         self.h = h
+        self.initProvider = initialPointProvider
         self.on_drag = on_drag
         self.setFlag(QGraphicsItem.ItemIsSelectable, True)
         # self.setFlag(QGraphicsItem.ITem)
         self.setAcceptHoverEvents(True)
+        self.startPoint = QPointF()
 
         self.translation = QTransform()
         self.scale = QTransform()
@@ -154,5 +162,8 @@ class MoveHandle(ItemBase):
     def isConstantSize(self):
         return True
 
-    def dragMove(self, delta, suggestedPosition):
-        self.on_drag(delta, suggestedPosition)
+    def dragStart(self, startPoint):
+        self.startPoint = self.initProvider()
+
+    def dragMove(self, delta, total):
+        self.on_drag(self.startPoint + total)
