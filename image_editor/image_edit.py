@@ -127,6 +127,9 @@ class DuplicateDrag(DragStyle):
                 item.dragMove(delta, bigDelta)
 
 
+# class SceneMouseEvent:
+#     def __init__(self, buttons, modifier, pos, scenePos):
+
 class ImageScene(QGraphicsScene):
     on_item_edit = Signal(object)
 
@@ -158,7 +161,8 @@ class ImageScene(QGraphicsScene):
 
         self.editedItem = None
 
-        self.pressEvaluated = False
+        self.pressEvent = False
+        self.dragStarted = False
 
     def setPickEnabled(self, flag):
         self._is_pick_enabled_ = flag
@@ -298,42 +302,20 @@ class ImageScene(QGraphicsScene):
         if self.processPickEvent(e):
             clickItems = self._get_click_items(e)
             if len(clickItems) == 1 and clickItems[0].isEditable():
-                self.setItemEdited(clickItems[0])
-                self.on_item_edit.emit(clickItems[0])
+                item = clickItems[0]
+                self.setItemEdited(item)
+                self.on_item_edit.emit(item)
 
     def mousePressEvent(self, e):
+        QGraphicsScene.mousePressEvent(self, e)
+
         pressItems = self._get_click_items(e)
         if len(pressItems) == 0 and e.buttons() == Qt.LeftButton:
             self.emptyPress()
-            QGraphicsScene.mousePressEvent(self, e)
-            return
-
-        if not self.processPickEvent(e):
-            QGraphicsScene.mousePressEvent(self, e)
-            return
-
-        QGraphicsScene.mousePressEvent(self, e)
-
-        self.draggingItems = dict()
-
-        selItems = self.selectedItems()
-
-        styles = filter(lambda s: s.isValid(selItems, e.modifiers(), e.buttons()), self.dragStyles)
-
-        if len(styles) > 1:
-            raise ValueError('More then single drag style detected')
-        elif len(styles) == 0:
-            return
-
-        style = styles[0]
-        self.activeDragStyle = style
-
-        self.dragItems = style.initDrag(selItems, e.modifiers(), e.buttons())
-        for item in self.dragItems:
-            item.setDragged(True)
-            item.dragStart(e.scenePos())
-
-        style.setStartPoint(e.scenePos())
+        elif self.processPickEvent(e):
+            print 'setting press event'
+            from pyqode.qt.QtWidgets import QMouseEvent
+            self.pressEvent = True#QMouseEvent(e.type(), e.pos(), e.globalPos(), e.button(), e.buttons(), e.modifiers())
 
     def mouseMoveEvent(self, event):
         if not self.processPickEvent(event):
@@ -341,10 +323,35 @@ class ImageScene(QGraphicsScene):
             return
 
         QGraphicsScene.mouseMoveEvent(self, event)
-        if self.activeDragStyle:
-            p = event.scenePos()
-            self.activeDragStyle.setMovePoint(p)
-            self.activeDragStyle.applyDrag(self.dragItems)
+
+        if self.pressEvent:
+            if not self.dragStarted:
+                #startEvent = self.pressEvent
+                self.draggingItems = dict()
+                selItems = self.selectedItems()
+                styles = filter(lambda s: s.isValid(selItems, event.modifiers(), event.buttons()), self.dragStyles)
+                if len(styles) > 1:
+                    raise ValueError('More then single drag style detected')
+                elif len(styles) == 0:
+                    return
+
+                style = styles[0]
+                self.activeDragStyle = style
+
+                self.dragItems = style.initDrag(selItems, event.modifiers(), event.buttons())
+                for item in self.dragItems:
+                    item.setDragged(True)
+                    item.dragStart(event.lastScenePos())
+
+                style.setStartPoint(event.lastScenePos())
+
+                self.dragStarted = True
+                print "drag started"
+
+            if self.activeDragStyle:
+                p = event.scenePos()
+                self.activeDragStyle.setMovePoint(p)
+                self.activeDragStyle.applyDrag(self.dragItems)
 
         # TODO Force redraw, this would give worse performance, but ensures proper visual effect
         self.update(self.sceneRect())
@@ -362,11 +369,12 @@ class ImageScene(QGraphicsScene):
 
         self.dragItems = []
 
-        self.pressPos = None
-
         if self.activeDragStyle:
             self.activeDragStyle.finish()
             self.activeDragStyle = None
+
+        self.pressEvent = None
+        self.dragStarted = False
 
     def updateViewScale(self, scale):
         from item_base import ItemBase

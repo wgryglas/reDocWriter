@@ -56,7 +56,9 @@ class NumberItem(ItemBase):
 
         # f = qPainter.font()
         from pyqode.qt.QtWidgets import QFont
+        #Segoe
         f = QFont('Open Sans', self.fontSize)
+        # f = QFont('Segoe', self.fontSize)
         f.setPointSize(self.fontSize)
         qPainter.setFont(f)
 

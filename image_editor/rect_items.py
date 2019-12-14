@@ -1,5 +1,5 @@
 from pyqode.qt.QtCore import Qt, QSizeF, QRectF, QPointF, Signal
-from pyqode.qt.QtWidgets import QPen, QPainter, QColor
+from pyqode.qt.QtWidgets import QPen, QPainter, QColor, QPainterPath
 
 from item_base import ItemBase
 from handle_itemes import ExtensionArrow, MoveHandle
@@ -135,11 +135,15 @@ class RectSelectionItem(ItemBase):
         return self.size.height()
 
     def boundingRect(self, *args, **kwargs):
+        # w = self.getStyle().width
+        # return QRectF(-w, -w, self.width+w, self.height+w)
         return QRectF(0, 0, self.width, self.height)
 
     def paintBorder(self, qPainter, st):
-        w = st.width
-        qPainter.drawRect(-w, -w, self.width+w, self.height+w)
+        w = float(st.width)
+        rect = QPainterPath()
+        rect.addRect(-w/2, -w/2, self.width+w, self.height+w)
+        qPainter.drawPath(rect)
 
     def paintBackground(self, qPainter):
         qPainter.fillRect(0, 0, self.width, self.height)
@@ -173,7 +177,6 @@ class RectSelectionItem(ItemBase):
         #     self.setPos(p.x(), p.y())
         qPainter.restore()
 
-
     def dragMove(self, delta, suggestedPosition):
         self.setPos(self.constr(self.pos() + delta))
 
@@ -196,7 +199,10 @@ class EllipseSelectionItem(RectSelectionItem):
         qPainter.fillElipse(0, 0, self.width, self.height)
 
     def paintBorder(self, qPainter, st):
-        qPainter.drawEllipse(-st.width, -st.width, self.width+st.width, self.height+st.width)
+        w = float(st.width)/2
+        path = QPainterPath()
+        path.addEllipse(-w, -w, self.width + 2*w, self.height + 2*w)
+        qPainter.drawPath(path)
 
     def clone(self):
         item = EllipseSelectionItem(self.size, self.constr)
